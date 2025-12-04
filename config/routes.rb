@@ -14,6 +14,7 @@ Rails.application.routes.draw do
 
     # Other resources
     resources :feedbacks, only: [:index, :create, :destroy], controller: "ai_feedbacks"
+
     resources :saved_proposals, only: [:index, :create, :destroy]
   end
 

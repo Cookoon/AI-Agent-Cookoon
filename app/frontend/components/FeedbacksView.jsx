@@ -26,17 +26,23 @@ export default function FeedbackView() {
     fetchFeedbacks();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Voulez-vous vraiment supprimer ce feedback ?")) return;
-    try {
-      const res = await fetch(`/api/ai_feedbacks/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(`Erreur ${res.status} lors de la suppression`);
-      setFeedbacks((prev) => prev.filter((f) => f.id !== id));
-    } catch (err) {
-      console.error(err);
-      alert("Impossible de supprimer le feedback : " + err.message);
+ const handleDelete = async (id) => {
+  if (!window.confirm("Voulez-vous vraiment supprimer ce feedback ?")) return;
+  try {
+    const res = await fetch(`/api/feedbacks/${id}`, { method: "DELETE" });
+    if (res.status === 404) {
+      throw new Error("Feedback non trouvé pour suppression");
     }
-  };
+    if (!res.ok) throw new Error(`Erreur ${res.status} lors de la suppression`);
+
+    // Mettre à jour l'état local pour retirer le feedback supprimé
+    setFeedbacks((prev) => prev.filter((f) => f.id !== id));
+  } catch (err) {
+    console.error(err);
+    alert("Impossible de supprimer le feedback : " + err.message);
+  }
+};
+
 
   const types = useMemo(() => {
     const s = new Set(feedbacks.map((f) => f.feedback_type));

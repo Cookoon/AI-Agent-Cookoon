@@ -6,10 +6,11 @@ import { faComments } from "@fortawesome/free-regular-svg-icons";
 
 export default function NavBar() {
   return (
-    <nav className="fixed bottom-0 left-0 w-full h-12 bg-[#cabb90] flex justify-around items-center md:top-0 md:left-0 md:h-screen md:w-20 md:flex-col md:justify-start text-white">
+    <nav className="fixed bottom-0 left-0 w-full h-12 bg-[#cabb90] flex justify-around items-center md:top-0 md:left-0 md:h-screen md:w-20 md:flex-col md:justify-start md:pt-32 text-white">
+
       <a
         href="/"
-        className="mt-32 relative group w-10 h-10 rounded-lg transition-colors duration-200 hover:bg-white hover:text-[#cabb90] flex items-center justify-center text-xl md:w-12 md:h-12 md:text-2xl"
+        className="relative group w-10 h-10 rounded-lg transition-colors duration-200 hover:bg-white hover:text-[#cabb90] flex items-center justify-center text-xl md:w-12 md:h-12 md:text-2xl"
         aria-label="Home"
       >
         <FontAwesomeIcon icon={faHouse} />

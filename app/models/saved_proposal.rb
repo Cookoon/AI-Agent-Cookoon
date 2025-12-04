@@ -1,0 +1,2 @@
+class SavedProposal < ApplicationRecord
+end

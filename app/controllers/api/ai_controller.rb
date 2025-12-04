@@ -52,7 +52,8 @@ class Api::AiController < ApplicationController
       Nouvelle demande utilisateur : "#{user_prompt}"
 
       Choisis toujours les éléments les plus pertinents.
-      Mets le nom de chaque chef en valeur avec un émoji différent.
+      Mets le nom de chaque chef et lieu en valeur avec un émoji différent correspondant à ce dernier.
+      Met l'emoji avant le nom de chaque chef et lieu.
       Ne jamais utiliser "**" dans ta réponse.
 
       Si un budget est fourni, respecte-le (tolérance +10% max).
@@ -62,11 +63,13 @@ class Api::AiController < ApplicationController
 
       CHEFS
       Sélectionne 3 chefs les plus pertinents selon la demande et indique pourquoi tu les à choisis.
+
       Indique leur prix : Prix: "XX€".
       Si nombre de personnes présent -> Prix total YY personnes : XXX€
 
       LIEUX :
       Sélectionne 3 lieux les plus pertinents selon la demande et indique pourquoi tu les à choisis.
+
       Indique leur prix : Prix: "XX€".
       Si nombre de personnes présent -> Prix total pour YY personnes
 
@@ -83,6 +86,7 @@ class Api::AiController < ApplicationController
       result_text = "Aucun résultat" if result_text.blank?
 
       result_text.gsub!("*", "")
+      result_text.gsub!("#", "")
 
       Rails.logger.info "[AI DEBUG] Réponse Gemini : #{result_text.inspect}"
 

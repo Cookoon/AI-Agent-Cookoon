@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import NavBar from "./NavBar";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCopy } from "@fortawesome/free-regular-svg-icons";
+import { faCheck } from "@fortawesome/free-solid-svg-icons";
 
 export default function Historic() {
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [copiedId, setCopiedId] = useState(null);
 
-  // Récupérer toutes les propositions sauvegardées
   const fetchProposals = async () => {
     setLoading(true);
     try {
@@ -25,7 +28,6 @@ export default function Historic() {
     fetchProposals();
   }, []);
 
-  // Supprimer une proposition
   const handleDelete = async (id) => {
     if (!confirm("Voulez-vous vraiment supprimer cette proposition ?")) return;
     try {
@@ -38,44 +40,66 @@ export default function Historic() {
     }
   };
 
-  return (
-    <div className="p-8">
-      
-      <h1 className="text-3xl font-bold mb-6">Historique des Propositions</h1>
+  const handleCopy = (id, text) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
+  };
 
-      {loading ? (
-        <p>Chargement...</p>
-      ) : proposals.length === 0 ? (
-        <p>Aucune proposition sauvegardée</p>
-      ) : (
-        <table className="min-w-full border">
-          <thead>
-            <tr className="bg-gray-200">
-              <th className="px-4 py-2 text-left">Prompt</th>
-              <th className="px-4 py-2 text-left">Proposition</th>
-              <th className="px-4 py-2 text-left">Date</th>
-              <th className="px-4 py-2 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <NavBar />
+
+      <div className="w-[70%] mx-auto my-12">
+        <h1 className="text-2xl font-bold mb-6">Propositions Sauvegardées</h1>
+
+        {loading ? (
+          <p className="text-gray-600">Chargement...</p>
+        ) : proposals.length === 0 ? (
+          <p className="text-gray-600">Aucune proposition sauvegardée</p>
+        ) : (
+          <div className="space-y-6">
             {proposals.map(p => (
-              <tr key={p.id} className="border-t">
-                <td className="px-4 py-2">{p.last_prompt}</td>
-                <td className="px-4 py-2"><pre className="whitespace-pre-wrap">{p.proposal_text}</pre></td>
-                <td className="px-4 py-2">{new Date(p.created_at).toLocaleString()}</td>
-                <td className="px-4 py-2">
+              <div key={p.id} className="bg-white shadow-lg rounded-lg p-6">
+                <div className="mb-3">
+                  <span className="font-semibold text-gray-600">Prompt :</span>
+                  <div className="text-gray-700 truncate">{p.last_prompt}</div>
+                </div>
+
+                <div className="mb-3">
+                  <span className="font-semibold text-gray-600">Proposition :</span>
+                  <pre className="whitespace-pre-wrap max-h-40 overflow-auto text-sm text-gray-700 bg-gray-50 p-3 rounded mt-1">
+                    {p.proposal_text}
+                  </pre>
+                </div>
+
+                <div className="mb-3 text-sm text-gray-500">
+                  {new Date(p.created_at).toLocaleString()}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
                   <button
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md"
                     onClick={() => handleDelete(p.id)}
                   >
                     Supprimer
                   </button>
-                </td>
-              </tr>
+
+                  <button
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1 rounded-md flex items-center gap-2"
+                    onClick={() => handleCopy(p.id, p.proposal_text)}
+                  >
+                    <FontAwesomeIcon icon={copiedId === p.id ? faCheck : faCopy} />
+                    {copiedId === p.id ? "Copié !" : "Copier"}
+                  </button>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

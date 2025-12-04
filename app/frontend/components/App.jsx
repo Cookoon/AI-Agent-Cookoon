@@ -33,27 +33,29 @@ export default function AiApp() {
     }
   };
 
-  const submitFeedback = async () => {
-    if (!rating) return;
+const submitFeedback = async () => {
+  if (!rating) return;
 
-    try {
-      await fetch("/api/ai/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "global",
-          prompt_text: prompt,
-          result_text: resultText,
-          rating,
-        }),
-      });
+  try {
+    await fetch("/api/feedbacks", {  // <-- ici
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "global", // Rails mappe 'global' → 'chefs'
+        prompt_text: prompt,
+        result_text: resultText,
+        rating,
+      }),
+    });
 
-      setFeedbackSent(true);
-      setTimeout(() => setFeedbackSent(false), 3000);
-    } catch (e) {
-      alert("Erreur lors de l'envoi du feedback");
-    }
-  };
+    setFeedbackSent(true);
+    setTimeout(() => setFeedbackSent(false), 3000);
+  } catch (e) {
+    alert("Erreur lors de l'envoi du feedback");
+  }
+};
+
+
 
   const StarRating = () => (
     <div className="flex gap-1">
@@ -101,34 +103,43 @@ export default function AiApp() {
 
           {/* --- Résultat --- */}
           {resultText && (
-            <div className="bg-white p-5 rounded shadow space-y-4">
-              <h3 className="font-semibold">Résultat</h3>
-              <pre className="whitespace-pre-wrap">{resultText}</pre>
+              <div className="bg-white p-5 rounded-lg shadow-md space-y-4">
+                <h3 className="font-semibold text-lg text-gray-800">Résultat</h3>
 
-              <div>
-                <p className="mb-1">Notez le résultat :</p>
-                <StarRating />
+               <pre className="whitespace-pre-wrap font-sans text-gray-800 text-base leading-relaxed p-3 bg-gray-50 rounded-md max-h-96 overflow-y-auto">
+  {resultText}
+</pre>
+
+                <div className="flex items-center justify-between">
+                <div className="space-y-2 flex">
+
+                  <StarRating />
+                  <button
+                    onClick={submitFeedback}
+                    disabled={!rating}
+                    className="mt-2 ml-2 bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 disabled:opacity-40 transition"
+                  >
+                    Envoyer feedback
+                  </button>
+                  {feedbackSent && (
+                    <div className="flex items-center ml-2">
+                          <p className="text-gray-600 text-sm">Feedback envoyé</p>
+                        </div>
+
+                  )}
+                </div>
+
                 <button
-                  onClick={submitFeedback}
-                  disabled={!rating}
-                  className="mt-2 bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 disabled:opacity-40"
+                  onClick={saveProposal}
+                  disabled={!resultText}
+                  className="mt-2 bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 disabled:opacity-40 transition"
                 >
-                  Envoyer feedback
+                  💾 Sauvegarder
                 </button>
-                {feedbackSent && (
-                  <p className="text-green-600 text-sm mt-1">Merci pour votre retour ❤️</p>
-                )}
+                </div>
               </div>
+            )}
 
-              <button
-                onClick={saveProposal}
-                disabled={!resultText}
-                className="ml-2 mt-2 bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 disabled:opacity-40"
-              >
-                💾 Sauvegarder
-              </button>
-            </div>
-          )}
 
           {/* --- Formulaire prompt --- */}
           <div className="text-area-container">
@@ -136,7 +147,7 @@ export default function AiApp() {
          <textarea
             className="px-4 py-2 border rounded-full resize-none focus:border-[#cabb90] focus:outline-none"
 
-            placeholder="Votre demande..."
+            placeholder="Entrez votre demande la plus détaillée possible : chefs, types de cuisine, lieu, , type de lieu, budget, nombre de guests, occasion..."
             value={prompt}
             style={{ height: "auto", maxHeight: '7.5rem', overflowY: 'auto' }}
             rows={1}

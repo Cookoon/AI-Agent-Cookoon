@@ -1,16 +1,45 @@
-import React from 'react';
+import React from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faHouse } from "@fortawesome/free-regular-svg-icons";
+import { faClockRotateLeft } from "@fortawesome/free-solid-svg-icons";
+import { faComments } from "@fortawesome/free-regular-svg-icons";
 
+export default function NavBar() {
+  return (
+   <nav className="fixed top-0 left-0 h-screen w-20 text-white flex flex-col items-center py-6 space-y-10 bg-[#cabb90]">
+  <a
+    href="/"
+    className="relative group w-12 h-12 mt-16 rounded-lg transition-colors duration-200 hover:bg-white hover:text-[#cabb90] flex items-center justify-center text-2xl"
+    aria-label="Home"
+  >
+    <FontAwesomeIcon icon={faHouse} />
+    <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs font-medium text-white opacity-0 transform scale-95 transition-all duration-150 group-hover:opacity-100 group-hover:scale-100">
+      Home
+    </span>
+  </a>
 
+  <a
+    href="/historic"
+    className="relative group w-12 h-12 rounded-lg transition-colors duration-200 hover:bg-white hover:text-[#cabb90] flex items-center justify-center text-2xl"
+    aria-label="Historique"
+  >
+    <FontAwesomeIcon icon={faClockRotateLeft} />
+    <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs font-medium text-white opacity-0 transform scale-95 transition-all duration-150 group-hover:opacity-100 group-hover:scale-100">
+      Historique
+    </span>
+  </a>
 
-  export default function NavBar() {
+  <a
+    href="/feedback"
+    className="relative group w-12 h-12 rounded-lg transition-colors duration-200 hover:bg-white hover:text-[#cabb90] flex items-center justify-center text-2xl"
+    aria-label="Feedback"
+  >
+    <FontAwesomeIcon icon={faComments} />
+    <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs font-medium text-white opacity-0 transform scale-95 transition-all duration-150 group-hover:opacity-100 group-hover:scale-100">
+      Feedback
+    </span>
+  </a>
+</nav>
 
-    return (
-      <nav
-      className="fixed top-0 left-0 h-screen w-48 text-white flex flex-col p-6 space-y-6 bg-[#cabb90]"
-      >
-      <a href="/" className="px-3 py-2 rounded transition-colors duration-200 hover:bg-white hover:text-[#cabb90]">Accueil</a>
-      <a href="/feedback" className="px-3 py-2 rounded transition-colors duration-200 hover:bg-white hover:text-[#cabb90]">Feedbacks</a>
-      <a href="/historic" className="px-3 py-2 rounded transition-colors duration-200 hover:bg-white hover:text-[#cabb90]">Historique</a>
-      </nav>
-    );
-  }
+  );
+}

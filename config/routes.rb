@@ -13,7 +13,7 @@ Rails.application.routes.draw do
     post "ai/reset_session", to: "ai#reset_session"
 
     # Other resources
-    resources :feedbacks, only: [:index, :destroy], controller: "ai_feedbacks"
+    resources :feedbacks, only: [:index, :create, :destroy], controller: "ai_feedbacks"
     resources :saved_proposals, only: [:index, :create, :destroy]
   end
 

@@ -8,6 +8,9 @@ gem "httparty"
 
 gem 'dotenv-rails', groups: [:development, :test]
 
+gem 'sassc-rails'
+
+
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 7.1.6"
 

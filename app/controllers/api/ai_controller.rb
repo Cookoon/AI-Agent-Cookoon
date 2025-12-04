@@ -27,14 +27,12 @@ class Api::AiController < ApplicationController
     end
 
     # ------------------ Feedback Summary ------------------
-    feedback_summary = Feedback.group(:feedback_type).pluck(:feedback_type).map do |type_value|
-      feedbacks = Feedback.where(feedback_type: type_value)
-      next if feedbacks.empty?
-      avg = feedbacks.average(:rating)&.round(1) || 0
-      prompts = feedbacks.order(rating: :desc).limit(3).pluck(:prompt_text)
-      results = feedbacks.order(rating: :desc).limit(3).pluck(:result_text)
-      "#{type_value.upcase} - Note moyenne : #{avg}/5. Prompts : #{prompts.join('; ')}. Résultats : #{results.join('; ')}"
-    end.compact.join("\n")
+    feedback_summary = Feedback.all.map do |fb|
+      avg = fb.rating || 0
+      prompts = [fb.prompt_text].compact
+      results = [fb.result_text].compact
+      "Note : #{avg}/5. Prompt : #{prompts.join('; ')}. Résultat : #{results.join('; ')}"
+    end.join("\n")
 
     # ------------------ PROMPT AI ------------------
     combined_prompt = <<~PROMPT
@@ -104,7 +102,6 @@ class Api::AiController < ApplicationController
   # ------------------- FEEDBACK -------------------
   def feedback
     feedback = Feedback.new(
-      feedback_type: params[:type],
       rating: params[:rating],
       prompt_text: params[:prompt_text],
       result_text: params[:result_text]

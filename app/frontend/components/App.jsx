@@ -34,26 +34,44 @@ export default function AiApp() {
   };
 
 const submitFeedback = async () => {
-  if (!rating) return;
+  if (!rating) {
+    alert("Veuillez sélectionner une note avant d'envoyer le feedback.");
+    return;
+  }
 
   try {
-    await fetch("/api/feedbacks", {  // <-- ici
+    const res = await fetch("/api/feedbacks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        type: "global", // Rails mappe 'global' → 'chefs'
         prompt_text: prompt,
         result_text: resultText,
         rating,
       }),
     });
 
+    // Parser la réponse JSON en sécurité
+    const data = await res.json().catch(() => {
+      throw new Error("Réponse du serveur invalide (non JSON)");
+    });
+
+    if (!res.ok) {
+      // Si le serveur renvoie une erreur 422 ou autre
+      throw new Error(data.error || `Erreur HTTP ${res.status}`);
+    }
+
+    // Feedback envoyé avec succès
     setFeedbackSent(true);
     setTimeout(() => setFeedbackSent(false), 3000);
+
   } catch (e) {
-    alert("Erreur lors de l'envoi du feedback");
+    console.error("Erreur submitFeedback:", e);
+    alert("Erreur lors de l'envoi du feedback : " + e.message);
   }
 };
+
+
+
 
 
 

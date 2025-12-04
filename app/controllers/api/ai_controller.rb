@@ -35,46 +35,49 @@ class Api::AiController < ApplicationController
     end.join("\n")
 
     # ------------------ PROMPT AI ------------------
-    combined_prompt = <<~PROMPT
-      Voici les données des chefs :
-      #{chefs_data.to_json}
+combined_prompt = <<~PROMPT
+  Voici les données disponibles :
 
-      Voici les données des lieux :
-      #{lieux_data.to_json}
+  Chefs :
+  #{chefs_data.to_json}
 
-      Résumé des feedbacks précédents :
-      #{feedback_summary.present? ? feedback_summary : "Aucun feedback disponible."}
+  Lieux :
+  #{lieux_data.to_json}
 
-      Historique prompts : #{session[:user_prompt_session].join(" | ")}
+  Historique des feedbacks précédents :
+  #{feedback_summary.present? ? feedback_summary : "Aucun feedback disponible."}
 
-      Nouvelle demande utilisateur : "#{user_prompt}"
+  Historique des prompts utilisateur :
+  #{session[:user_prompt_session].join(" | ")}
 
-      Choisis toujours les éléments les plus pertinents.
-      Mets le nom de chaque chef et lieu en valeur avec un émoji différent correspondant à ce dernier.
-      Met l'emoji avant le nom de chaque chef et lieu.
-      Ne jamais utiliser "**" dans ta réponse.
+  Nouvelle demande utilisateur :
+  "#{user_prompt}"
 
-      Si un budget est fourni, respecte-le (tolérance +10% max).
-      Fais les calculs nécessaires.
+  Instructions pour la réponse :
+  1. Sélectionne toujours les éléments les plus pertinents en fonction des mots-clés dans les bases de données.
+  2. Mets le nom de chaque chef et lieu en valeur avec un émoji unique. L’émoji doit précéder le nom.
+  3. Ne jamais utiliser "**" ou autres formats Markdown.
+  4. Respecte le budget si fourni (tolérance +10% max). Fais tous les calculs nécessaires.
+  5. Ne résume pas le prompt, donne directement la réponse.
+  6. Présente les informations dans un format clair, structuré et lisible pour l’utilisateur.
 
-      Ne résume pas mon prompt dans ta réponse.
+  CHEFS :
+  - Sélectionne 3 chefs les plus pertinents selon la demande.
+  - Explique brièvement pourquoi chaque chef est choisi.
+  - Indique le prix de chaque chef : Prix: "XX€".
+  - Si un nombre de personnes est fourni, indique le prix total : "Prix total YY personnes : XXX€".
 
-      CHEFS
-      Sélectionne 3 chefs les plus pertinents selon la demande et indique pourquoi tu les à choisis.
+  LIEUX :
+  - Sélectionne 3 lieux les plus pertinents selon la demande.
+  - Explique brièvement pourquoi chaque lieu est choisi.
+  - Indique le prix de chaque lieu : Prix: "XX€".
+  - Si un nombre de personnes est fourni, indique le prix total pour YY personnes.
 
-      Indique leur prix : Prix: "XX€".
-      Si nombre de personnes présent -> Prix total YY personnes : XXX€
+  TOP PROPOSITION :
+  - Donne 1 seul mix chef + lieu le plus pertinent selon la demande.
+  - Indique le prix total.
+PROMPT
 
-      LIEUX :
-      Sélectionne 3 lieux les plus pertinents selon la demande et indique pourquoi tu les à choisis.
-
-      Indique leur prix : Prix: "XX€".
-      Si nombre de personnes présent -> Prix total pour YY personnes
-
-      TOP PROPOSITIONS
-      Donne moi 1 seul mix chefs + lieux le plus pertinent selon ma demande.
-      Indique le prix total.
-    PROMPT
 
     # ------------------ CALL GEMINI ------------------
     result_text = "Aucun résultat"

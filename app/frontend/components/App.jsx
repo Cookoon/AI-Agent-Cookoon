@@ -114,10 +114,10 @@ const submitFeedback = async () => {
   return (
     <div className="content">
       <NavBar />
-      <div className="p-10 min-h-screen bg-gray-100 flex justify-center">
-        <div className="w-[70%] space-y-6"> {/* <-- largeur 70% */}
+      <div className="p-4 sm:p-6 min-h-screen bg-gray-100 flex justify-center">
+        <div className="w-full sm:w-[90%] md:w-[80%] lg:w-[70%] space-y-6"> {/* responsive width */}
 
-          <h1 className="text-3xl font-bold text-center">Assistant AI</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-center">Assistant AI</h1>
 
           {/* --- Résultat --- */}
           {resultText && (
@@ -128,32 +128,30 @@ const submitFeedback = async () => {
   {resultText}
 </pre>
 
-                <div className="flex items-center justify-between">
-                <div className="space-y-2 flex">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <StarRating />
+                    <button
+                      onClick={submitFeedback}
+                      disabled={!rating}
+                      className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 disabled:opacity-40 transition text-sm"
+                    >
+                      Envoyer
+                    </button>
+                    {feedbackSent && (
+                      <div className="flex items-center ml-2">
+                        <p className="text-gray-600 text-sm">Feedback envoyé</p>
+                      </div>
+                    )}
+                  </div>
 
-                  <StarRating />
                   <button
-                    onClick={submitFeedback}
-                    disabled={!rating}
-                    className="mt-2 ml-2 bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 disabled:opacity-40 transition"
+                    onClick={saveProposal}
+                    disabled={!resultText}
+                    className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-40 transition text-sm"
                   >
-                    Envoyer feedback
+                    💾 Sauvegarder
                   </button>
-                  {feedbackSent && (
-                    <div className="flex items-center ml-2">
-                          <p className="text-gray-600 text-sm">Feedback envoyé</p>
-                        </div>
-
-                  )}
-                </div>
-
-                <button
-                  onClick={saveProposal}
-                  disabled={!resultText}
-                  className="mt-2 bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 disabled:opacity-40 transition"
-                >
-                  💾 Sauvegarder
-                </button>
                 </div>
               </div>
             )}
@@ -161,9 +159,9 @@ const submitFeedback = async () => {
 
           {/* --- Formulaire prompt --- */}
           <div className="text-area-container">
-        <div className="flex flex-col bg-gray-100 p-4 rounded-full">
+        <div className="flex flex-col bg-gray-100 p-3 sm:p-4 rounded-full">
          <textarea
-            className="px-4 py-2 border rounded-full resize-none focus:border-[#cabb90] focus:outline-none"
+            className="w-full px-4 py-2 border rounded-full resize-none focus:border-[#cabb90] focus:outline-none text-sm sm:text-base"
 
             placeholder="Entrez votre demande la plus détaillée possible : chefs, types de cuisine, lieu, , type de lieu, budget, nombre de guests, occasion..."
             value={prompt}
@@ -199,7 +197,7 @@ const submitFeedback = async () => {
   <button
     onClick={handleSubmit}
     disabled={loading}
-    className="mt-2 h-12 w-32 bg-[#cabb90] text-white px-4 rounded-full hover:brightness-90 disabled:opacity-40 self-end"
+    className="mt-2 self-end h-10 sm:h-12 w-24 sm:w-32 bg-[#cabb90] text-white px-3 rounded-full hover:brightness-90 disabled:opacity-40 text-sm sm:text-base"
   >
     {loading ? "Chargement..." : "Envoyer"}
   </button>

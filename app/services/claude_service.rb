@@ -4,7 +4,7 @@ class ClaudeService
     @url = URI("https://api.anthropic.com/v1/messages")
   end
 
-  def call(prompt, max_tokens: 200)
+  def generate(prompt, max_tokens: 200)  # ← ici
     req = Net::HTTP::Post.new(@url)
     req["x-api-key"] = @api_key
     req["anthropic-version"] = "2023-06-01"
@@ -22,7 +22,6 @@ class ClaudeService
 
     body = JSON.parse(res.body)
 
-    # Version sécurisée
     if body["completion"].present?
       body["completion"]
     elsif body["content"].is_a?(Array) && body["content"].first["text"]

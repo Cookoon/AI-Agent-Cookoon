@@ -1,17 +1,33 @@
 class AirtableFilter
   def self.filter_chefs(chefs, criteria)
     filtered = chefs.dup
-    if criteria[:etoiles].present?
-      filtered.select! { |c| c["Reconnaissance"].to_i >= criteria[:etoiles].to_i }
-    end
+
+if criteria[:nationality].present?
+  filtered.select! do |c|
+    match = c["nationality"].to_s.parameterize.downcase.include?(criteria[:nationality].to_s.parameterize.downcase)
+    puts "[FILTER DEBUG] Chef: #{c['name']}, Nationality: #{c['nationality']}, Match: #{match}"
+    match
+  end
+end
+
 
     if criteria[:cuisine].present?
       filtered.select! { |c| c["type_of_cooking"].to_s.downcase.include?(criteria[:cuisine].downcase) }
     end
 
     if criteria[:budget].present?
-      filtered.select! { |c| c["price_dinner_discovery_menu"].to_f <= criteria[:budget].to_f * 1.1 }
+      columns = ["price_dinner_discovery_menu", "price_dinner_cocktail_menu", "price_minimum_spend", "price_minimum_spend_diner"]
+      filtered.select! { |c| columns.any? { |col| c[col].to_f <= criteria[:budget].to_f * 1.1 } }
     end
+
+    if criteria[:etoiles].present?
+      etoiles_req = criteria[:etoiles].to_i
+      filtered.select! do |c|
+        stars = c["Reconnaissance"].to_s.scan(/\d+/).first.to_i
+        stars >= etoiles_req
+      end
+    end
+
 
 
     if criteria[:key_words].present?
@@ -20,7 +36,7 @@ class AirtableFilter
       end
     end
 
-    filtered.first(3)
+    filtered.first(10)
   end
 
   def self.filter_lieux(lieux, criteria)
@@ -49,6 +65,6 @@ class AirtableFilter
       filtered.select! { |l| l["location"].to_s.downcase.include?(criteria[:location].downcase) }
     end
 
-    filtered.first(3)
+    filtered.first(10)
   end
 end

@@ -3,7 +3,7 @@ require "uri"
 require "json"
 
 class GeminiService
-  PRIMARY_MODEL = "gemini-2.5-flash-lite"
+  PRIMARY_MODEL = "gemini-2.5-flash"
   FALLBACK_MODEL = "gemini-2.5-flash"
 
   BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
@@ -13,9 +13,7 @@ class GeminiService
     raise "GEMINI_API_KEY absente dans .env" unless @api_key
   end
 
-  # Génère du texte depuis Gemini
-  # prompt : texte à envoyer
-  # max_tokens : limite de tokens
+
   def generate(prompt, max_tokens: 1000)
     # 1️⃣ essai modèle principal
     result = request_model(PRIMARY_MODEL, prompt, max_tokens)

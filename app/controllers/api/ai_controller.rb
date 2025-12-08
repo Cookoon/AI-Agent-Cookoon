@@ -15,11 +15,11 @@ class Api::AiController < ApplicationController
     Rails.logger.info "[AI DEBUG] Nouveau prompt : #{user_prompt.inspect}"
 
     # ------------------ Airtable Data ------------------
-    chefs_data = Rails.cache.fetch("chefs_data", expires_in: 60.minutes) do
+    chefs_data = Rails.cache.fetch("chefs_data", expires_in: 180.minutes) do
       (AirtableService.new("Chefs").all.fetch("records", []) rescue []).map { |c| c["fields"] }
     end
 
-    lieux_data = Rails.cache.fetch("lieux_data", expires_in: 60.minutes) do
+    lieux_data = Rails.cache.fetch("lieux_data", expires_in: 180.minutes) do
       (AirtableService.new("Lieux").all.fetch("records", []) rescue []).map { |l| l["fields"] }
     end
 
@@ -28,6 +28,7 @@ class Api::AiController < ApplicationController
   etoiles: params[:etoiles],
   cuisine: params[:cuisine],
   budget: params[:budget],
+
   capacite: params[:capacite],
   type_lieu: params[:type_lieu],
   key_words: params[:key_words],
@@ -35,6 +36,7 @@ class Api::AiController < ApplicationController
 }
 
 criteria[:nationality] ||= user_prompt[/chef\s*(japonais|français|italien|thai|indien)/i, 1]
+criteria[:sexe] ||= "féminin" if user_prompt =~ /\bune\s+chef(fe)?\b/i
 
 
     # ------------------ Filtrage ------------------
@@ -86,7 +88,6 @@ criteria[:nationality] ||= user_prompt[/chef\s*(japonais|français|italien|thai|
       result_text = GeminiService.new.generate(combined_prompt, max_tokens: 2000)
       result_text = "Aucun résultat" if result_text.blank?
 
-      # Nettoyage
       result_text.gsub!("*", "")
       result_text.gsub!("#", "")
 

@@ -2,28 +2,29 @@ class Api::FeedbacksController < ApplicationController
   protect_from_forgery with: :null_session
   skip_before_action :verify_authenticity_token
 
-  # POST /api/feedbacks
-  def create
-  feedback = Feedback.new(
-    prompt_text: params[:prompt_text],
-    result_text: params[:result_text],
-    rating: params[:rating]
-  )
-
-  if feedback.save
-    render json: { success: true, feedback: feedback }, status: :created
-  else
-    render json: { error: feedback.errors.full_messages.join(", ") }, status: :unprocessable_entity
-  end
-end
-
-
   # GET /api/feedbacks
   def index
     feedbacks = Feedback.order(created_at: :desc)
     render json: feedbacks
   rescue => e
     render json: { error: e.message }, status: :internal_server_error
+  end
+
+  # POST /api/feedbacks
+  def create
+    clean_result = extract_names(params[:result_text])
+
+    feedback = Feedback.new(
+      prompt_text: params[:prompt_text],
+      result_text: clean_result,
+      rating: params[:rating]
+    )
+
+    if feedback.save
+      render json: { success: true, names_stored: clean_result }, status: :created
+    else
+      render json: { error: feedback.errors.full_messages.join(", ") }, status: :unprocessable_entity
+    end
   end
 
   # DELETE /api/feedbacks/:id
@@ -37,5 +38,17 @@ end
     end
   rescue => e
     render json: { error: e.message }, status: :internal_server_error
+  end
+
+  private
+
+  def extract_names(text)
+    text.lines
+        .map(&:strip)
+        .reject(&:empty?)
+        .reject { |l| l =~ /CHEFS|LIEUX|type de cuisine|reconnue|prix|total|€|personnes|style|correspond|arrondissement|dîner|déjeuner|fixe|minimum/i }
+        .select { |l| l.split.size <= 6 } # filtre pour garder juste les noms
+        .uniq
+        .join(", ")
   end
 end

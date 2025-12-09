@@ -183,6 +183,7 @@ GEM
       racc (~> 1.4)
     nokogiri (1.18.10-x86_64-linux-musl)
       racc (~> 1.4)
+    pdf-core (0.10.0)
     pg (1.6.2)
     pg (1.6.2-aarch64-linux)
     pg (1.6.2-aarch64-linux-musl)
@@ -192,6 +193,10 @@ GEM
     pg (1.6.2-x86_64-linux-musl)
     pp (0.6.3)
       prettyprint
+    prawn (2.5.0)
+      matrix (~> 0.4)
+      pdf-core (~> 0.10.0)
+      ttfunk (~> 1.8)
     prettyprint (0.2.0)
     psych (5.2.6)
       date
@@ -287,6 +292,8 @@ GEM
     tilt (2.4.0)
     timeout (0.4.4)
     tsort (0.2.0)
+    ttfunk (1.8.0)
+      bigdecimal (~> 3.1)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     vite_rails (3.0.19)
@@ -331,6 +338,7 @@ DEPENDENCIES
   httparty
   jbuilder
   pg
+  prawn
   puma (>= 5.0)
   rails (~> 7.1.6)
   sassc-rails

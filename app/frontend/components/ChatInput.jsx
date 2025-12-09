@@ -16,7 +16,7 @@ export default function ChatInput({ handleSubmit }) {
   return (
     <textarea
       ref={textareaRef}
-      className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#cabb90] resize-none overflow-hidden"
+      className="flex-1 px-4 py-2 border rounded focus:ring-2 focus:ring-[#cabb90] resize-none overflow-hidden"
       placeholder="Votre demande..."
       value={prompt}
       rows={1}

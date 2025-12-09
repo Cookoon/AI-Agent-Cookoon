@@ -6,4 +6,14 @@ module.exports = {
   ,
   theme: { extend: {} },
   plugins: [],
+
+  theme: {
+    extend: {
+      fontFamily: {
+        avenir: ['"AvenirRegular"', 'sans-serif'],
+      },
+    },
+  },
+
+
 }

@@ -47,6 +47,18 @@ criteria[:sexe] ||= "féminin" if user_prompt =~ /\bune\s+chef(fe)?\b/i
     chefs_data = chefs_data.map { |c| c.except("description", "photo") }
     lieux_data = lieux_data.map { |l| l.except("description", "photo") }
 
+
+
+    # ----------------- Récupération des derniers feedbacks -----------------
+last_feedbacks = Feedback.order(created_at: :desc).limit(10).map do |f|
+  {
+    rating: f.rating,
+    prompt: f.prompt_text,
+    result: f.result_text
+  }
+end
+
+
     # ------------------ Construction du prompt AI ------------------
   combined_prompt = <<~PROMPT
       Voici les données disponibles :
@@ -57,26 +69,30 @@ criteria[:sexe] ||= "féminin" if user_prompt =~ /\bune\s+chef(fe)?\b/i
       Lieux :
       #{lieux_data.to_json}
 
+      Historique récent des feedbacks (10 derniers) noté /5 , 5/5 était une recommendation parfaite, 1/5 une mauvaise recommendation :
+      #{last_feedbacks.to_json}
+
       Nouvelle demande utilisateur :
       "#{user_prompt}"
 
       Instructions pour la réponse :
-      1. Sélectionne toujours les éléments les plus pertinents en fonction des mots-clés dans les bases de données.
+      1. Sélectionne toujours les éléments les plus pertinents en fonction des bases de données.
       2. Respecte le budget si fourni (tolérance +10% max). Fais tous les calculs nécessaires.
       3. Ne résume pas le prompt, donne directement la réponse.
       4. Présente les informations dans un format clair, structuré et lisible pour l’utilisateur.
 
-
+      Met les sections distinctes pour CHEFS et LIEUX avec les tites en Bold.
+      
 
       CHEFS :
       - Sélectionne 3 chefs les plus pertinents selon la demande.
-      - Explique brièvement pourquoi chaque chef est choisi.
+      - Explique brièvement pourquoi chaque chef est choisi. Ne dit pas "pourquoi il est choisi:", mais explique directement. Ne mentionne pas "mot-clé".
       - Indique le prix de chaque chef : Prix: "XX€".
       - Si un nombre de personnes est fourni, indique le prix total : "Prix total YY personnes : XXX€".
 
       LIEUX :
       - Sélectionne 3 lieux les plus pertinents selon la demande.
-      - Explique brièvement pourquoi chaque lieu est choisi.
+      - Explique brièvement pourquoi chaque lieu est choisi. Ne dit pas "pourquoi il est choisi:", mais explique directement. Ne mentionne pas "mot-clé"
       - Indique le prix de chaque lieu : Prix: "XX€".
       - Si un nombre de personnes est fourni, indique le prix total pour YY personnes.
 

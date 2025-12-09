@@ -13,9 +13,13 @@ Rails.application.routes.draw do
     post "ai/reset_session", to: "ai#reset_session"
 
     # Other resources
-     resources :feedbacks, only: [:index, :create, :destroy] 
+     resources :feedbacks, only: [:index, :create, :destroy]
 
-    resources :saved_proposals, only: [:index, :create, :destroy]
+     resources :saved_proposals, only: [:index, :create, :destroy] do
+    member do
+      get :pdf # <--- Nouvelle route
+    end
+  end
   end
 
   root 'pages#home'

@@ -9,10 +9,11 @@ export default function Historic() {
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
 
+  // ------------------- Fetch Proposals -------------------
   const fetchProposals = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/saved_proposals");
+      const res = await fetch("http://localhost:3000/api/saved_proposals");
       if (!res.ok) throw new Error("Erreur lors de la récupération des propositions");
       const data = await res.json();
       setProposals(data);
@@ -28,10 +29,13 @@ export default function Historic() {
     fetchProposals();
   }, []);
 
+  // ------------------- Delete Proposal -------------------
   const handleDelete = async (id) => {
     if (!confirm("Voulez-vous vraiment supprimer cette proposition ?")) return;
     try {
-      const res = await fetch(`/api/saved_proposals/${id}`, { method: "DELETE" });
+      const res = await fetch(`http://localhost:3000/api/saved_proposals/${id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error("Erreur lors de la suppression");
       setProposals(proposals.filter(p => p.id !== id));
     } catch (err) {
@@ -40,6 +44,7 @@ export default function Historic() {
     }
   };
 
+  // ------------------- Copy to Clipboard -------------------
   const handleCopy = (id, text) => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text);
@@ -48,12 +53,18 @@ export default function Historic() {
     }
   };
 
+  // ------------------- Download PDF -------------------
+  const handleDownloadPDF = (id) => {
+    window.open(`http://localhost:3000/api/saved_proposals/${id}/pdf`, "_blank");
+  };
+
+  // ------------------- Render -------------------
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 ">
       <NavBar />
 
-      <div className="w-[70%] mx-auto my-12">
-        <h1 className="text-2xl font-bold mb-6">Propositions Sauvegardées</h1>
+      <div className="w-[70%] mx-auto ">
+        <h1 className="text-2xl font-bold mb-6 pt-16">Propositions Sauvegardées</h1>
 
         {loading ? (
           <p className="text-gray-600">Chargement...</p>
@@ -61,7 +72,7 @@ export default function Historic() {
           <p className="text-gray-600">Aucune proposition sauvegardée</p>
         ) : (
           <div className="space-y-6">
-            {proposals.map(p => (
+            {proposals.map((p) => (
               <div key={p.id} className="bg-white shadow-lg rounded-lg p-6">
                 <div className="mb-3">
                   <span className="font-semibold text-gray-600">Prompt :</span>
@@ -93,6 +104,13 @@ export default function Historic() {
                   >
                     <FontAwesomeIcon icon={copiedId === p.id ? faCheck : faCopy} />
                     {copiedId === p.id ? "Copié !" : "Copier"}
+                  </button>
+
+                  <button
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md"
+                    onClick={() => handleDownloadPDF(p.id)}
+                  >
+                    Télécharger PDF
                   </button>
                 </div>
               </div>

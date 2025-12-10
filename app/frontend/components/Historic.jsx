@@ -9,15 +9,19 @@ export default function Historic() {
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
 
-  const API_URL = import.meta.env.VITE_API_URL;
+  // Détermine l'URL de l'API selon l'environnement
+  const API_URL =
+    import.meta.env.VITE_API_URL || ""; // vide = fetch relatif en prod
 
   // ------------------- Fetch Proposals -------------------
   const fetchProposals = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/saved_proposals`);
+      const res = await fetch(`${API_URL}/api/saved_proposals`);
       if (!res.ok) throw new Error("Erreur lors de la récupération des propositions");
+
       const data = await res.json();
+      console.log("Données reçues :", data);
       setProposals(data.saved_proposals || data);
     } catch (err) {
       console.error(err);
@@ -27,7 +31,6 @@ export default function Historic() {
     }
   };
 
-  // Appel au montage du composant
   useEffect(() => {
     fetchProposals();
   }, []);
@@ -35,8 +38,9 @@ export default function Historic() {
   // ------------------- Delete Proposal -------------------
   const handleDelete = async (id) => {
     if (!confirm("Voulez-vous vraiment supprimer cette proposition ?")) return;
+
     try {
-      const res = await fetch(`${API_URL}/saved_proposals/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_URL}/api/saved_proposals/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Erreur lors de la suppression");
       setProposals(proposals.filter((p) => p.id !== id));
     } catch (err) {
@@ -45,7 +49,7 @@ export default function Historic() {
     }
   };
 
-  // ------------------- Copy -------------------
+  // ------------------- Copy to Clipboard -------------------
   const handleCopy = (id, text) => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text);
@@ -56,13 +60,14 @@ export default function Historic() {
 
   // ------------------- Download PDF -------------------
   const handleDownloadPDF = (id) => {
-    window.open(`${API_URL}/saved_proposals/${id}/pdf`, "_blank");
+    window.open(`${API_URL}/api/saved_proposals/${id}/pdf`, "_blank");
   };
 
   // ------------------- Render -------------------
   return (
     <div className="min-h-screen bg-gray-50">
       <NavBar />
+
       <div className="w-[70%] mx-auto pb-32">
         <h1 className="text-2xl font-bold mb-6 pt-16">Propositions Sauvegardées</h1>
 

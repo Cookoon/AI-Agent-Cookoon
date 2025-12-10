@@ -33,7 +33,8 @@ class Api::SavedProposalsController < ApplicationController
     render json: { error: e.message }, status: :internal_server_error
   end
 
-  def pdf
+
+def pdf
     proposal = SavedProposal.find(params[:id])
     pdf = Prawn::Document.new
 
@@ -204,47 +205,52 @@ class Api::SavedProposalsController < ApplicationController
               disposition: "attachment"
   end
 
-  # ---------------- Airtable ----------------
-  def fetch_airtable_image(table, name)
-    return nil if name.blank?
+# ---------------- Airtable ----------------
+def fetch_airtable_image(table, name)
+  return nil if name.blank?
 
-    airtable_key = ENV['AIRTABLE_API_KEY']
-    base_id      = ENV['AIRTABLE_BASE_ID']
+  airtable_key = ENV['AIRTABLE_API_KEY']
+  base_id      = ENV['AIRTABLE_BASE_ID']
 
-    clean_name = name.strip
+  clean_name = name.strip
 
-    filter = URI.encode_www_form_component("{name}='#{clean_name}'")
+  # Essayer d'abord avec 'Nom', puis 'Name', puis 'name'
+  ['Nom', 'Name', 'name'].each do |field_name|
+    filter = URI.encode_www_form_component("{#{field_name}}='#{clean_name}'")
     url = "https://api.airtable.com/v0/#{base_id}/#{table}?filterByFormula=#{filter}"
 
-    Rails.logger.info "  🔍 Recherche: '#{clean_name}'"
-    Rails.logger.info "  🔗 URL: #{url}"
+    Rails.logger.info "  🔍 Recherche avec {#{field_name}}: '#{clean_name}'"
 
-    response = URI.open(url, "Authorization" => "Bearer #{airtable_key}")
-    data = JSON.parse(response.read)
+    begin
+      response = URI.open(url, "Authorization" => "Bearer #{airtable_key}")
+      data = JSON.parse(response.read)
 
-    Rails.logger.info "  📊 Records trouvés: #{data['records']&.size || 0}"
+      Rails.logger.info "  📊 Records trouvés: #{data['records']&.size || 0}"
 
-    if data['records']&.any?
-      record = data['records'].first
-      Rails.logger.info "  📝 Champs disponibles: #{record['fields'].keys.inspect}"
+      if data['records']&.any?
+        record = data['records'].first
+        Rails.logger.info "  📝 Champs disponibles: #{record['fields'].keys.inspect}"
 
-      image_url = record.dig("fields", "photo", 0, "url")
+        image_url = record.dig("fields", "photo", 0, "url")
 
-      if image_url
-        image_data = URI.open(image_url).read
-        Rails.logger.info "  ✅ Image téléchargée: #{image_data.bytesize} bytes"
-        return image_data
-      else
-        Rails.logger.warn "  ⚠️ Pas de champ 'photo' dans le record"
-        return nil
+        if image_url
+          image_data = URI.open(image_url).read
+          Rails.logger.info "  ✅ Image téléchargée: #{image_data.bytesize} bytes"
+          return image_data
+        else
+          Rails.logger.warn "  ⚠️ Pas de champ 'photo' dans le record"
+        end
       end
-    else
-      Rails.logger.warn "  ⚠️ Aucun record trouvé pour '#{clean_name}'"
-      return nil
+    rescue => e
+      Rails.logger.debug "  Tentative avec {#{field_name}} échouée: #{e.message}"
     end
-  rescue => e
-    Rails.logger.error "  ❌ Erreur: #{e.class} - #{e.message}"
-    Rails.logger.error "  #{e.backtrace.first(3).join("\n  ")}"
-    nil
   end
+
+  Rails.logger.warn "  ❌ Aucune image trouvée pour '#{clean_name}' avec aucun des champs testés"
+  nil
+rescue => e
+  Rails.logger.error "  ❌ Erreur: #{e.class} - #{e.message}"
+  Rails.logger.error "  #{e.backtrace.first(3).join("\n  ")}"
+  nil
+end
 end

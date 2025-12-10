@@ -63,7 +63,7 @@ export default function Historic() {
     <div className="min-h-screen bg-gray-50 ">
       <NavBar />
 
-      <div className="w-[70%] mx-auto ">
+      <div className="w-[70%] mx-auto pb-32">
         <h1 className="text-2xl font-bold mb-6 pt-16">Propositions Sauvegardées</h1>
 
         {loading ? (

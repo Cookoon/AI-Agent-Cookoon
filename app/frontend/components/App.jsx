@@ -115,7 +115,7 @@ const submitFeedback = async () => {
     <div className="content AvenirRegular">
       <NavBar />
       <div className="p-4 sm:p-6 min-h-screen bg-gray-100 flex justify-center">
-        <div className="w-full sm:w-[90%] md:w-[80%] lg:w-[70%] space-y-6"> {/* responsive width */}
+        <div className="w-full sm:w-[90%] md:w-[80%] lg:w-[70%] space-y-6 pt-32"> {/* responsive width */}
 
           <h1 className="text-2xl sm:text-3xl font-bold text-center">Assistant AI</h1>
 

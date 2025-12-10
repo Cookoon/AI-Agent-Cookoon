@@ -24,43 +24,38 @@ class Api::AiController < ApplicationController
     end
 
     # ------------------ Extraction des critères depuis le front ------------------
-   criteria = {
-  etoiles: params[:etoiles],
-  cuisine: params[:cuisine],
-  budget: params[:budget],
+    criteria = {
+      etoiles: params[:etoiles],
+      cuisine: params[:cuisine],
+      budget: params[:budget],
+      capacite: params[:capacite],
+      type_lieu: params[:type_lieu],
+      key_words: params[:key_words],
+      location: params[:location]
+    }
 
-  capacite: params[:capacite],
-  type_lieu: params[:type_lieu],
-  key_words: params[:key_words],
-  location: params[:location]
-}
-
-criteria[:nationality] ||= user_prompt[/chef\s*(japonais|français|italien|thai|indien)/i, 1]
-criteria[:sexe] ||= "féminin" if user_prompt =~ /\bune\s+chef(fe)?\b/i
-
+    criteria[:nationality] ||= user_prompt[/chef\s*(japonais|français|italien|thai|indien)/i, 1]
+    criteria[:sexe] ||= "féminin" if user_prompt =~ /\bune\s+chef(fe)?\b/i
 
     # ------------------ Filtrage ------------------
     chefs_data = AirtableFilter.filter_chefs(chefs_data, criteria)
     lieux_data = AirtableFilter.filter_lieux(lieux_data, criteria)
 
     # ------------------ Supprimer colonnes inutiles ------------------
-    chefs_data = chefs_data.map { |c| c.except("description", "photo") }
-    lieux_data = lieux_data.map { |l| l.except("description", "photo") }
-
-
+    chefs_data = chefs_data.map { |c| c.except("description") }
+    lieux_data = lieux_data.map { |l| l.except("description") }
 
     # ----------------- Récupération des derniers feedbacks -----------------
-last_feedbacks = Feedback.order(created_at: :desc).limit(10).map do |f|
-  {
-    rating: f.rating,
-    prompt: f.prompt_text,
-    result: f.result_text
-  }
-end
-
+    last_feedbacks = Feedback.order(created_at: :desc).limit(10).map do |f|
+      {
+        rating: f.rating,
+        prompt: f.prompt_text,
+        result: f.result_text
+      }
+    end
 
     # ------------------ Construction du prompt AI ------------------
-  combined_prompt = <<~PROMPT
+    combined_prompt = <<~PROMPT
       Voici les données disponibles :
 
       Chefs :
@@ -79,23 +74,57 @@ end
       1. Sélectionne toujours les éléments les plus pertinents en fonction des bases de données.
       2. Respecte le budget si fourni (tolérance +10% max). Fais tous les calculs nécessaires.
       3. Ne résume pas le prompt, donne directement la réponse.
-      4. Présente les informations dans un format clair, structuré et lisible pour l’utilisateur.
+      4. Présente les informations dans un format clair, structuré et lisible pour l'utilisateur.
 
-      Met les sections distinctes pour CHEFS et LIEUX avec les tites en Bold.
-      
+      **FORMAT DE RÉPONSE OBLIGATOIRE** :
 
       CHEFS :
-      - Sélectionne 3 chefs les plus pertinents selon la demande.
-      - Explique brièvement pourquoi chaque chef est choisi. Ne dit pas "pourquoi il est choisi:", mais explique directement. Ne mentionne pas "mot-clé".
-      - Indique le prix de chaque chef : Prix: "XX€".
-      - Si un nombre de personnes est fourni, indique le prix total : "Prix total YY personnes : XXX€".
+
+      [Nom du Chef 1]
+      [Description et justification du choix]
+      Prix : XX€ par personne
+      Prix total pour [N] personnes : XXX€
+
+      [Nom du Chef 2]
+      [Description et justification du choix]
+      Prix : XX€ par personne
+      Prix total pour [N] personnes : XXX€
+
+      [Nom du Chef 3]
+      [Description et justification du choix]
+      Prix : XX€ par personne
+      Prix total pour [N] personnes : XXX€
 
       LIEUX :
-      - Sélectionne 3 lieux les plus pertinents selon la demande.
-      - Explique brièvement pourquoi chaque lieu est choisi. Ne dit pas "pourquoi il est choisi:", mais explique directement. Ne mentionne pas "mot-clé"
-      - Indique le prix de chaque lieu : Prix: "XX€".
-      - Si un nombre de personnes est fourni, indique le prix total pour YY personnes.
 
+      [Nom du Lieu 1]
+      [Description et justification du choix]
+      Prix fixe : XXX€
+      Prix par personne : XX€
+      Prix total pour [N] personnes : XXX€
+
+      [Nom du Lieu 2]
+      [Description et justification du choix]
+      Prix fixe : XXX€
+      Prix par personne : XX€
+      Prix total pour [N] personnes : XXX€
+
+      [Nom du Lieu 3]
+      [Description et justification du choix]
+      Prix fixe : XXX€
+      Prix par personne : XX€
+      Prix total pour [N] personnes : XXX€
+
+      RÈGLES IMPORTANTES :
+      - Le NOM doit être sur une LIGNE SÉPARÉE, seul, sans texte avant ou après
+      - La description commence à la ligne suivante
+      - Sélectionne exactement 3 chefs et 3 lieux
+      - Utilise EXACTEMENT les noms tels qu'ils apparaissent dans la base de données (respecte majuscules, accents, espaces)
+      - Explique brièvement pourquoi chaque chef/lieu est choisi en parlant directement au client
+      - Ne mentionne pas "mot-clé" ou "pourquoi il est choisi"
+      - Indique tous les prix clairement
+
+      Ne propose pas de Suggestion combinée Chef + Lieu.
     PROMPT
 
     # ------------------ Appel à Gemini ------------------
@@ -104,6 +133,7 @@ end
       result_text = GeminiService.new.generate(combined_prompt, max_tokens: 2000)
       result_text = "Aucun résultat" if result_text.blank?
 
+      # Nettoyage
       result_text.gsub!("*", "")
       result_text.gsub!("#", "")
 

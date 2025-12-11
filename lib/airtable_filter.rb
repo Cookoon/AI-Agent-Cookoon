@@ -1,74 +1,61 @@
 class AirtableFilter
+  # ----------------- CHEFS -----------------
   def self.filter_chefs(chefs, criteria)
     filtered = chefs.dup
 
-if criteria[:nationality].present?
-  filtered.select! do |c|
-    match = c["nationality"].to_s.parameterize.downcase.include?(criteria[:nationality].to_s.parameterize.downcase)
-  end
-end
+    filtered.select! { |c| c["nationality"].to_s.include?(criteria[:nationality].to_s) } if criteria[:nationality].present?
+    filtered.select! { |c| c["sexe"].to_s.include?(criteria[:sexe].to_s) } if criteria[:sexe].present?
 
-if criteria[:sexe].present?
-  filtered.select! { |c| c["sexe"].to_s.downcase.include?(criteria[:sexe].downcase) }
-end
+    if criteria[:etoiles].present?
+      etoiles_req = criteria[:etoiles].to_i
+      filtered.select! { |c| c["Reconnaissance"].to_s.scan(/\d+/).first.to_i >= etoiles_req }
+    end
 
-if criteria[:etoiles].present?
-  etoiles_req = criteria[:etoiles].to_i
-  filtered.select! do |c|
-    stars = c["Reconnaissance"].to_s.scan(/\d+/).first.to_i
-    stars >= etoiles_req
-  end
-end
+    filtered.select! { |c| c["type_of_cooking"].to_s.include?(criteria[:cuisine].to_s) } if criteria[:cuisine].present?
 
-
-
-
-    if criteria[:cuisine].present?
-      filtered.select! { |c| c["type_of_cooking"].to_s.downcase.include?(criteria[:cuisine].downcase) }
+    # Mots clés chefs : OR
+    if criteria[:key_words_chefs].present?
+      searched_words = criteria[:key_words_chefs].split(/[\s,;]+/)
+      filtered.select! do |c|
+        chef_keywords = c["key_words"].to_s.split(/[\s,;]+/)
+        chef_keywords.any? { |k| searched_words.any? { |w| k.include?(w) } }
+      end
     end
 
     if criteria[:budget].present?
-      columns = ["price_dinner_discovery_menu", "price_dinner_cocktail_menu", "price_minimum_spend", "price_minimum_spend_diner"]
+      columns = ["price_dinner_discovery_menu","price_dinner_cocktail_menu","price_minimum_spend","price_minimum_spend_diner"]
       filtered.select! { |c| columns.any? { |col| c[col].to_f <= criteria[:budget].to_f * 1.1 } }
     end
 
+    filtered.select! { |c| c["followers"].to_s.include?(criteria[:followers].to_s) } if criteria[:followers].present?
 
-    if criteria[:key_words].present?
-      filtered.select! do |c|
-        c["key_words"].to_s.downcase.split(",").any? { |k| criteria[:key_words].downcase.include?(k.strip) }
-      end
-    end
-
-    filtered.first(10)
-
+    filtered
   end
 
+  # ----------------- LIEUX -----------------
   def self.filter_lieux(lieux, criteria)
     filtered = lieux.dup
 
-    if criteria[:type_lieu].present?
-      filtered.select! { |l| l["decor_style"].to_s.downcase.include?(criteria[:type_lieu].downcase) }
-    end
+    filtered.select! { |l| l["decor_style"].to_s.include?(criteria[:type_lieu].to_s) } if criteria[:type_lieu].present?
 
-    if criteria[:budget].present?
-      filtered.select! { |l| l["price_fixed_lunch"].to_f <= criteria[:budget].to_f * 1.1 }
-    end
+    filtered.select! { |l| l["price_fixed_lunch"].to_f <= criteria[:budget].to_f * 1.1 } if criteria[:budget].present?
 
     if criteria[:capacite].present?
-      columns = ["outside_capacity_sit", "outside_capacity_standing", "outside_with_rent", "inside_capacity_sit", "inside_capacity_standing", "inside_with_rent"]
+      columns = ["outside_capacity_sit","outside_capacity_standing","outside_with_rent","inside_capacity_sit","inside_capacity_standing","inside_with_rent"]
       filtered.select! { |l| columns.any? { |col| l[col].to_i >= criteria[:capacite].to_i } }
     end
 
-    if criteria[:key_words].present?
+    # Mots clés lieux : OR
+    if criteria[:key_words_lieux].present?
+      searched_words = criteria[:key_words_lieux].split(/[\s,;]+/)
       filtered.select! do |l|
-        l["key_words"].to_s.downcase.split(",").any? { |k| criteria[:key_words].downcase.include?(k.strip) }
+        lieu_keywords = l["key_words"].to_s.split(/[\s,;]+/)
+        lieu_keywords.any? { |k| searched_words.any? { |w| k.include?(w) } }
       end
     end
 
-    if criteria[:location].present?
-      filtered.select! { |l| l["location"].to_s.downcase.include?(criteria[:location].downcase) }
-    end
+    filtered.select! { |l| l["location"].to_s.include?(criteria[:location].to_s) } if criteria[:location].present?
 
-    filtered.first(10)
+    filtered
   end
 end

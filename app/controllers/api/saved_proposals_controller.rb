@@ -35,175 +35,197 @@ class Api::SavedProposalsController < ApplicationController
 
 
 def pdf
-    proposal = SavedProposal.find(params[:id])
-    pdf = Prawn::Document.new
+  proposal = SavedProposal.find(params[:id])
 
-    # === FONT avec bold ===
-    nyghtserif_path = "#{Rails.root}/app/assets/fonts/NyghtSerif-Regular.ttf"
-    nyghtserif_bold_path = "#{Rails.root}/app/assets/fonts/NyghtSerif-Bold.ttf"
-    pdf.font_families.update("NyghtSerif" => { normal: nyghtserif_path, bold: nyghtserif_bold_path })
-    pdf.font "NyghtSerif"
+  # PDF en format paysage
+  pdf = Prawn::Document.new(page_layout: :landscape)
 
-    # === LOGO ===
+  # === FONT avec bold ===
+  nyghtserif_path = "#{Rails.root}/app/assets/fonts/NyghtSerif-Regular.ttf"
+  nyghtserif_bold_path = "#{Rails.root}/app/assets/fonts/NyghtSerif-Bold.ttf"
+  pdf.font_families.update("NyghtSerif" => { normal: nyghtserif_path, bold: nyghtserif_bold_path })
+  pdf.font "NyghtSerif"
+
+  # === PAGE DE GARDE - LOGO CENTRÉ ===
+  # Calculer la position pour centrer verticalement
+  page_height = pdf.bounds.height
+  page_width = pdf.bounds.width
+  logo_width = 200
+  logo_height = 200  # Estimation, ajustez selon votre logo
+
+  # Centrer verticalement et horizontalement
+  y_position = (page_height + logo_height) / 2
+  x_position = (page_width - logo_width) / 2
+
+  pdf.bounding_box([x_position, y_position], width: logo_width, height: logo_height) do
     pdf.image "#{Rails.root}/app/assets/images/Cookoon_Logo_Logo HD sans marge fond blanc (1).jpg",
-              width: 120, position: :center
-    pdf.move_down 40
-    pdf.text "Proposition de Chefs et Lieux", size: 18, align: :center
-    pdf.move_down 40
-
-    # --- Extraction noms de CHEFS et LIEUX ---
-    lines = proposal.proposal_text.to_s.encode('UTF-8').lines
-
-    Rails.logger.info "=" * 80
-    Rails.logger.info "DÉBUT EXTRACTION DES NOMS"
-    Rails.logger.info "=" * 80
-
-    chef_names = []
-    lieu_names = []
-    current_section = nil
-
-    lines.each_with_index do |line, index|
-      line_stripped = line.strip
-
-      Rails.logger.info "[Ligne #{index}] '#{line_stripped}' | Section: #{current_section}"
-
-      if line_stripped =~ /^CHEFS\s*:/i
-        current_section = :chefs
-        Rails.logger.info "  ➡️ Début section CHEFS"
-        next
-      elsif line_stripped =~ /^LIEUX\s*:/i
-        current_section = :lieux
-        Rails.logger.info "  ➡️ Début section LIEUX"
-        next
-      end
-
-      # Si on est dans une section
-      if current_section && !line_stripped.empty?
-        # Arrêter si on rencontre une nouvelle section majeure
-        if line_stripped.match?(/^(BUDGET|MENU|OPTIONS|DÉTAILS|TOTAL|TARIF|RÉSUMÉ|CONCLUSION)/i)
-          Rails.logger.info "  ❌ Fin de section"
-          current_section = nil
-          next
-        end
-
-        # Ignorer les lignes qui commencent par "Prix", "Ce", etc.
-        if line_stripped.match?(/^(Prix|Ce\s|Clément\soffre|Situé|Thibaut\sest)/i)
-          Rails.logger.info "  ⏭️ Ligne de description ignorée"
-          next
-        end
-
-        # Détecter un nom : commence par une majuscule, longueur raisonnable
-        if line_stripped.match?(/^[A-ZÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ]/) &&
-           line_stripped.length > 2 &&
-           line_stripped.length < 50 &&
-           !line_stripped.include?(':')
-
-          # Prendre toute la ligne comme nom (au cas où il y a prénom + nom)
-          name = line_stripped.strip
-
-          if current_section == :chefs && chef_names.size < 3
-            chef_names << name
-            Rails.logger.info "  ✅ 👨‍🍳 Chef #{chef_names.size}: '#{name}'"
-          elsif current_section == :lieux && lieu_names.size < 3
-            lieu_names << name
-            Rails.logger.info "  ✅ 📍 Lieu #{lieu_names.size}: '#{name}'"
-          end
-        else
-          Rails.logger.info "  ⚠️ Pas un nom (pattern non respecté)"
-        end
-      end
-    end
-
-
-
-    # --- Pré-charger les images depuis Airtable ---
-    chef_images = {}
-    lieu_images = {}
-
-    chef_names.each_with_index do |name, idx|
-
-      image_data = fetch_airtable_image("Chefs", name)
-      if image_data
-        chef_images[name] = image_data
-        Rails.logger.info "  ✅ Image trouvée (#{image_data.bytesize} bytes)"
-      else
-        Rails.logger.warn "  ⚠️ Pas d'image trouvée pour '#{name}'"
-      end
-    end
-
-    lieu_names.each_with_index do |name, idx|
-      Rails.logger.info "Chargement image lieu #{idx + 1}/#{lieu_names.size}: '#{name}'"
-      image_data = fetch_airtable_image("Lieux", name)
-      if image_data
-        lieu_images[name] = image_data
-        Rails.logger.info "  ✅ Image trouvée (#{image_data.bytesize} bytes)"
-      else
-        Rails.logger.warn "  ⚠️ Pas d'image trouvée pour '#{name}'"
-      end
-    end
-
-    Rails.logger.info "=" * 80
-    Rails.logger.info "Images chargées - Chefs: #{chef_images.size}/#{chef_names.size}, Lieux: #{lieu_images.size}/#{lieu_names.size}"
-    Rails.logger.info "Chef images keys: #{chef_images.keys.inspect}"
-    Rails.logger.info "Lieu images keys: #{lieu_images.keys.inspect}"
-    Rails.logger.info "=" * 80
-
-    # --- PDF ligne par ligne ---
-    lines.each do |line|
-      line = line.gsub(/[\s\u00A0]*€/,'€').gsub(/€\(/,'€ (')
-      line_text = line.strip
-
-      if line_text =~ /^CHEFS\s*:/i
-        pdf.move_down 10
-        pdf.text "CHEFS", size: 12, style: :bold
-        pdf.move_down 5
-        next
-      elsif line_text =~ /^LIEUX\s*:/i
-        pdf.move_down 10
-        pdf.text "LIEUX", size: 12, style: :bold
-        pdf.move_down 5
-        next
-      end
-
-      # Afficher la ligne
-      pdf.text line, size: 12, leading: 4
-
-      # Vérifier si cette ligne contient un nom de chef
-      chef_names.each do |chef_name|
-        if line_text == chef_name && chef_images[chef_name]
-          pdf.move_down 5
-          begin
-            pdf.image StringIO.new(chef_images[chef_name]), width: 180
-            pdf.move_down 10
-            Rails.logger.info "📷 Image PDF ajoutée pour chef: '#{chef_name}'"
-          rescue => e
-            Rails.logger.error "❌ Erreur ajout image chef '#{chef_name}': #{e.message}"
-          end
-          break
-        end
-      end
-
-      # Vérifier si cette ligne contient un nom de lieu
-      lieu_names.each do |lieu_name|
-        if line_text == lieu_name && lieu_images[lieu_name]
-          pdf.move_down 5
-          begin
-            pdf.image StringIO.new(lieu_images[lieu_name]), width: 180
-            pdf.move_down 10
-            Rails.logger.info "📷 Image PDF ajoutée pour lieu: '#{lieu_name}'"
-          rescue => e
-            Rails.logger.error "❌ Erreur ajout image lieu '#{lieu_name}': #{e.message}"
-          end
-          break
-        end
-      end
-    end
-
-    send_data pdf.render,
-              filename: "proposition_#{proposal.id}.pdf",
-              type: "application/pdf",
-              disposition: "attachment"
+              width: logo_width, position: :center
   end
+
+  # --- Extraction des données structurées ---
+  lines = proposal.proposal_text.to_s.encode('UTF-8').lines
+
+  chef_data = []
+  lieu_data = []
+  current_section = nil
+  current_item = nil
+
+  lines.each_with_index do |line, index|
+    line_stripped = line.strip
+
+    # Détection des sections
+    if line_stripped =~ /^CHEFS\s*:/i
+      current_section = :chefs
+      next
+    elsif line_stripped =~ /^LIEUX\s*:/i
+      current_section = :lieux
+      next
+    elsif line_stripped.match?(/^(BUDGET|MENU|OPTIONS|DÉTAILS|TOTAL|TARIF|RÉSUMÉ|CONCLUSION)/i)
+      current_section = nil
+      next
+    end
+
+    next if current_section.nil? || line_stripped.empty?
+
+    # Détection d'un nouveau nom (chef ou lieu)
+    if line_stripped.match?(/^[A-ZÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ]/) &&
+       line_stripped.length > 2 &&
+       line_stripped.length < 50 &&
+       !line_stripped.include?(':') &&
+       !line_stripped.match?(/^(Prix|Ce\s|Clément\soffre|Situé|Thibaut\sest)/i)
+
+      # Sauvegarder l'item précédent s'il existe
+      if current_item
+        if current_section == :chefs
+          chef_data << current_item
+        elsif current_section == :lieux
+          lieu_data << current_item
+        end
+      end
+
+      # Créer un nouvel item
+      current_item = {
+        name: line_stripped,
+        description: []
+      }
+    elsif current_item
+      # Ajouter à la description
+      current_item[:description] << line_stripped
+    end
+  end
+
+  # Sauvegarder le dernier item
+  if current_item
+    if current_section == :chefs
+      chef_data << current_item
+    elsif current_section == :lieux
+      lieu_data << current_item
+    end
+  end
+
+  Rails.logger.info "=" * 80
+  Rails.logger.info "Chefs extraits: #{chef_data.size}"
+  chef_data.each { |c| Rails.logger.info "  - #{c[:name]}" }
+  Rails.logger.info "Lieux extraits: #{lieu_data.size}"
+  lieu_data.each { |l| Rails.logger.info "  - #{l[:name]}" }
+  Rails.logger.info "=" * 80
+
+  # --- Charger les images ---
+  chef_data.each do |chef|
+    image_data = fetch_airtable_image("Chefs", chef[:name])
+    chef[:image] = image_data if image_data
+    Rails.logger.info "Chef '#{chef[:name]}': image #{image_data ? 'trouvée' : 'manquante'}"
+  end
+
+  lieu_data.each do |lieu|
+    image_data = fetch_airtable_image("Lieux", lieu[:name])
+    lieu[:image] = image_data if image_data
+    Rails.logger.info "Lieu '#{lieu[:name]}': image #{image_data ? 'trouvée' : 'manquante'}"
+  end
+
+  # === GÉNÉRER LES PAGES CHEFS ===
+  chef_data.each do |chef|
+    pdf.start_new_page
+
+    # Titre de la section
+    pdf.text "CHEF", size: 16, style: :bold, color: "666666"
+    pdf.move_down 10
+
+    # Nom du chef centré en haut
+    pdf.text chef[:name], size: 22, style: :bold, align: :center
+    pdf.move_down 30
+
+    # Image à gauche et texte à droite
+    if chef[:image]
+      begin
+        y_position = pdf.cursor
+
+        # Image à gauche
+        pdf.bounding_box([0, y_position], width: 350, height: 400) do
+          pdf.image StringIO.new(chef[:image]), fit: [350, 400]
+        end
+
+        # Texte à droite
+        if chef[:description].any?
+          description_text = chef[:description].join("\n")
+          pdf.bounding_box([370, y_position], width: 370, height: 400) do
+            pdf.text description_text, size: 11, leading: 5, align: :left
+          end
+        end
+      rescue => e
+        Rails.logger.error "Erreur image chef '#{chef[:name]}': #{e.message}"
+      end
+    elsif chef[:description].any?
+      # Si pas d'image, afficher juste le texte
+      description_text = chef[:description].join("\n")
+      pdf.text description_text, size: 11, leading: 5, align: :left
+    end
+  end
+
+  # === GÉNÉRER LES PAGES LIEUX ===
+  lieu_data.each_with_index do |lieu, index|
+    pdf.start_new_page
+
+    # Titre de la section
+    pdf.text "LIEU", size: 16, style: :bold, color: "666666"
+    pdf.move_down 10
+
+    # Nom du lieu centré en haut
+    pdf.text lieu[:name], size: 22, style: :bold, align: :center
+    pdf.move_down 30
+
+    # Image à gauche et texte à droite
+    if lieu[:image]
+      begin
+        y_position = pdf.cursor
+
+        # Image à gauche
+        pdf.bounding_box([0, y_position], width: 350, height: 400) do
+          pdf.image StringIO.new(lieu[:image]), fit: [350, 400]
+        end
+
+        # Texte à droite
+        if lieu[:description].any?
+          description_text = lieu[:description].join("\n")
+          pdf.bounding_box([370, y_position], width: 370, height: 400) do
+            pdf.text description_text, size: 11, leading: 5, align: :left
+          end
+        end
+      rescue => e
+        Rails.logger.error "Erreur image lieu '#{lieu[:name]}': #{e.message}"
+      end
+    elsif lieu[:description].any?
+      # Si pas d'image, afficher juste le texte
+      description_text = lieu[:description].join("\n")
+      pdf.text description_text, size: 11, leading: 5, align: :left
+    end
+  end
+
+  send_data pdf.render,
+            filename: "proposition_#{proposal.id}.pdf",
+            type: "application/pdf",
+            disposition: "attachment"
+end
 
 # ---------------- Airtable ----------------
 def fetch_airtable_image(table, name)

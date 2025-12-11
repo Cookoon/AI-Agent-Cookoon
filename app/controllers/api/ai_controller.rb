@@ -2,6 +2,7 @@ class Api::AiController < ApplicationController
   protect_from_forgery with: :null_session
   skip_before_action :verify_authenticity_token
 
+
   # ------------------- RESET SESSION -------------------
   def reset_session
     session[:user_prompt_session] = []
@@ -10,40 +11,29 @@ class Api::AiController < ApplicationController
 
   # ------------------- RECOMMEND -------------------
   def recommend
-    # Prompt texte pour l'IA
     user_prompt = params[:prompt].to_s.strip
     Rails.logger.info "[AI DEBUG] Nouveau prompt : #{user_prompt.inspect}"
 
     # ------------------ Airtable Data ------------------
-    chefs_data = Rails.cache.fetch("chefs_data", expires_in: 180.minutes) do
-      (AirtableService.new("Chefs").all.fetch("records", []) rescue []).map { |c| c["fields"] }
-    end
+  chefs_data = Rails.cache.fetch("chefs_data") do
+  (AirtableService.new("Chefs").all.fetch("records", []) rescue []).map { |c| c["fields"] }
+end
 
-    lieux_data = Rails.cache.fetch("lieux_data", expires_in: 180.minutes) do
-      (AirtableService.new("Lieux").all.fetch("records", []) rescue []).map { |l| l["fields"] }
-    end
+lieux_data = Rails.cache.fetch("lieux_data") do
+  (AirtableService.new("Lieux").all.fetch("records", []) rescue []).map { |l| l["fields"] }
+end
 
-    # ------------------ Extraction des critères depuis le front ------------------
-    criteria = {
-      etoiles: params[:etoiles],
-      cuisine: params[:cuisine],
-      budget: params[:budget],
-      capacite: params[:capacite],
-      type_lieu: params[:type_lieu],
-      key_words: params[:key_words],
-      location: params[:location]
-    }
 
-    criteria[:nationality] ||= user_prompt[/chef\s*(japonais|français|italien|thai|indien)/i, 1]
-    criteria[:sexe] ||= "féminin" if user_prompt =~ /\bune\s+chef(fe)?\b/i
+    # ------------------ Extraction des critères ------------------
+    criteria = build_criteria_from_prompt_auto(user_prompt, chefs_data, lieux_data, params)
 
     # ------------------ Filtrage ------------------
-    chefs_data = AirtableFilter.filter_chefs(chefs_data, criteria)
-    lieux_data = AirtableFilter.filter_lieux(lieux_data, criteria)
+    chefs_filtered = AirtableFilter.filter_chefs(chefs_data, criteria)
+    lieux_filtered = AirtableFilter.filter_lieux(lieux_data, criteria)
 
     # ------------------ Supprimer colonnes inutiles ------------------
-    chefs_data = chefs_data.map { |c| c.except("description") }
-    lieux_data = lieux_data.map { |l| l.except("description") }
+    chefs_filtered = chefs_filtered.map { |c| c.except("description") }
+    lieux_filtered = lieux_filtered.map { |l| l.except("description") }
 
     # ----------------- Récupération des derniers feedbacks -----------------
     last_feedbacks = Feedback.order(created_at: :desc).limit(10).map do |f|
@@ -59,58 +49,34 @@ class Api::AiController < ApplicationController
       Voici les données disponibles :
 
       Chefs :
-      #{chefs_data.to_json}
+      #{chefs_filtered.to_json}
 
       Lieux :
-      #{lieux_data.to_json}
+      #{lieux_filtered.to_json}
 
-      Historique récent des feedbacks (10 derniers) noté /5 , 5/5 était une recommendation parfaite, 1/5 une mauvaise recommendation :
+      Historique récent des feedbacks (10 derniers) noté /5 :
       #{last_feedbacks.to_json}
 
       Nouvelle demande utilisateur :
       "#{user_prompt}"
 
       Instructions pour la réponse :
-      1. Sélectionne toujours les éléments les plus pertinents en fonction des bases de données.
-      2. Respecte le budget si fourni (tolérance +10% max). Fais tous les calculs nécessaires.
+      1. Sélectionne les éléments les plus pertinents en fonction de tous les mot clés dans la base de donnée.
+      2. Respecte le budget si fourni (+10% tolérance max).
       3. Ne résume pas le prompt, donne directement la réponse.
-      4. Présente les informations dans un format clair, structuré et lisible pour l'utilisateur.
+      4. Présente les informations clairement et lisiblement.
 
       **FORMAT DE RÉPONSE OBLIGATOIRE** :
 
       CHEFS :
-
       [Nom du Chef 1]
-      [Description et justification du choix]
-      Prix : XX€ par personne
-      Prix total pour [N] personnes : XXX€
-
-      [Nom du Chef 2]
-      [Description et justification du choix]
-      Prix : XX€ par personne
-      Prix total pour [N] personnes : XXX€
-
-      [Nom du Chef 3]
-      [Description et justification du choix]
+      [Description]
       Prix : XX€ par personne
       Prix total pour [N] personnes : XXX€
 
       LIEUX :
-
       [Nom du Lieu 1]
-      [Description et justification du choix]
-      Prix fixe : XXX€
-      Prix par personne : XX€
-      Prix total pour [N] personnes : XXX€
-
-      [Nom du Lieu 2]
-      [Description et justification du choix]
-      Prix fixe : XXX€
-      Prix par personne : XX€
-      Prix total pour [N] personnes : XXX€
-
-      [Nom du Lieu 3]
-      [Description et justification du choix]
+      [Description]
       Prix fixe : XXX€
       Prix par personne : XX€
       Prix total pour [N] personnes : XXX€
@@ -119,12 +85,11 @@ class Api::AiController < ApplicationController
       - Le NOM doit être sur une LIGNE SÉPARÉE, seul, sans texte avant ou après
       - La description commence à la ligne suivante
       - Sélectionne exactement 3 chefs et 3 lieux
-      - Utilise EXACTEMENT les noms tels qu'ils apparaissent dans la base de données (respecte majuscules, accents, espaces)
-      - Explique brièvement pourquoi chaque chef/lieu est choisi en parlant directement au client
-      - Ne mentionne pas "mot-clé" ou "pourquoi il est choisi"
+      - Si il y a moins de 3 résultats, complète avec les plus pertinents restants
+      - Utilise EXACTEMENT les noms tels qu'ils apparaissent dans la base de données
+      - Explique brièvement pourquoi chaque chef/lieu est choisi
+      - Exprime toi de manière claire et concise sans cité les mots clés dans des ""
       - Indique tous les prix clairement
-
-      Ne propose pas de Suggestion combinée Chef + Lieu.
     PROMPT
 
     # ------------------ Appel à Gemini ------------------
@@ -132,11 +97,8 @@ class Api::AiController < ApplicationController
     begin
       result_text = GeminiService.new.generate(combined_prompt, max_tokens: 2000)
       result_text = "Aucun résultat" if result_text.blank?
-
-      # Nettoyage
       result_text.gsub!("*", "")
       result_text.gsub!("#", "")
-
       Rails.logger.info "[AI DEBUG] Réponse Gemini : #{result_text.inspect}"
     rescue => e
       Rails.logger.error "[AI ERROR] Gemini : #{e.message}"
@@ -145,7 +107,7 @@ class Api::AiController < ApplicationController
     render json: { resultText: result_text }
 
   rescue => e
-    Rails.logger.error "[AI ERROR] AiController#recommend : #{e.message}"
+    Rails.logger.error "[AI ERROR] AiController#recommend : #{e.message}\n#{e.backtrace.join("\n")}"
     render json: { error: e.message, resultText: "Aucun résultat" }, status: :internal_server_error
   end
 
@@ -166,4 +128,61 @@ class Api::AiController < ApplicationController
     Rails.logger.error "Erreur Api::AiController#feedback: #{e.message}"
     render json: { error: "Une erreur est survenue" }, status: :internal_server_error
   end
+
+  private
+
+def build_criteria_from_prompt_auto(user_prompt, all_chefs, all_lieux, params = {})
+  criteria = {}
+  user_prompt_str = user_prompt.to_s.strip
+
+  # ---------------- CHEFS ----------------
+  # Nationalité
+  all_nationalities = %w[japonais francais italien mexicain portugais colombien]
+  criteria[:nationality] = params[:nationality] || all_nationalities.find do |nat|
+    user_prompt_str.match?(/#{Regexp.escape(nat)}/i)
+  end
+
+  # Sexe
+  criteria[:sexe] = params[:sexe] || "féminin" if user_prompt_str =~ /\bune\s+chef(fe)?\b/i
+
+  # Étoiles
+  criteria[:etoiles] = params[:etoiles] || user_prompt_str[/\b(\d+)\s*etoiles?\b/i, 1]
+
+  # Cuisine
+  criteria[:cuisine] = params[:cuisine]
+
+  # Budget
+  criteria[:budget] = params[:budget] || user_prompt_str[/\b(\d+)\s*€/i, 1]
+
+  # Followers
+  criteria[:followers] = params[:followers]
+
+  # Mots-clés CHEFS : scan tous les mots clés, OR match, insensible à la casse
+  all_chef_keywords = all_chefs.flat_map { |c| c["key_words"].to_s.split(/[\s,;]+/) }.uniq
+  matched_chef_words = all_chef_keywords.select do |w|
+    user_prompt_str.match?(/\b#{Regexp.escape(w)}\b/i)
+  end
+  criteria[:key_words_chefs] = matched_chef_words.join(", ") unless matched_chef_words.empty?
+
+  # ---------------- LIEUX ----------------
+  # Capacités
+  criteria[:capacite] = params[:capacite] || user_prompt_str[/\b(\d+)\s*personnes?\b/i, 1]
+
+  # Type de lieu
+  criteria[:type_lieu] = params[:type_lieu]
+
+  # Mots-clés LIEUX : scan tous les mots clés, OR match, insensible à la casse
+  all_lieu_keywords = all_lieux.flat_map { |l| l["key_words"].to_s.split(/[\s,;]+/) }.uniq
+  matched_lieu_words = all_lieu_keywords.select do |w|
+    user_prompt_str.match?(/\b#{Regexp.escape(w)}\b/i)
+  end
+  criteria[:key_words_lieux] = matched_lieu_words.join(", ") unless matched_lieu_words.empty?
+
+  # Localisation
+  criteria[:location] = params[:location]
+
+  criteria
+end
+
+
 end

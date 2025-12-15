@@ -65,6 +65,7 @@ end
       2. Respecte le budget si fourni (+10% tolérance max).
       3. Ne résume pas le prompt, donne directement la réponse.
       4. Présente les informations clairement et lisiblement.
+      5. Les feedbacks précédents doivent t'aider à améliorer la qualité des suggestions mais ne doivent pas être ta source principal pour prendre une décision.
 
       **FORMAT DE RÉPONSE OBLIGATOIRE** :
 
@@ -136,25 +137,21 @@ def build_criteria_from_prompt_auto(user_prompt, all_chefs, all_lieux, params = 
   user_prompt_str = user_prompt.to_s.strip
 
   # ---------------- CHEFS ----------------
-  # Nationalité
+
   all_nationalities = %w[japonais francais italien mexicain portugais colombien]
   criteria[:nationality] = params[:nationality] || all_nationalities.find do |nat|
     user_prompt_str.match?(/#{Regexp.escape(nat)}/i)
   end
 
-  # Sexe
+
   criteria[:sexe] = params[:sexe] || "féminin" if user_prompt_str =~ /\bune\s+chef(fe)?\b/i
 
-  # Étoiles
   criteria[:etoiles] = params[:etoiles] || user_prompt_str[/\b(\d+)\s*etoiles?\b/i, 1]
 
-  # Cuisine
   criteria[:cuisine] = params[:cuisine]
 
-  # Budget
   criteria[:budget] = params[:budget] || user_prompt_str[/\b(\d+)\s*€/i, 1]
 
-  # Followers
   criteria[:followers] = params[:followers]
 
   # Mots-clés CHEFS : scan tous les mots clés, OR match, insensible à la casse
@@ -165,10 +162,10 @@ def build_criteria_from_prompt_auto(user_prompt, all_chefs, all_lieux, params = 
   criteria[:key_words_chefs] = matched_chef_words.join(", ") unless matched_chef_words.empty?
 
   # ---------------- LIEUX ----------------
-  # Capacités
+
   criteria[:capacite] = params[:capacite] || user_prompt_str[/\b(\d+)\s*personnes?\b/i, 1]
 
-  # Type de lieu
+
   criteria[:type_lieu] = params[:type_lieu]
 
   # Mots-clés LIEUX : scan tous les mots clés, OR match, insensible à la casse

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import NavBar from "./NavBar";
+import Identification from "./Identification";
 
 export default function FeedbackView() {
   const [feedbacks, setFeedbacks] = useState([]);
@@ -52,6 +53,7 @@ export default function FeedbackView() {
   return (
     <>
       <NavBar />
+      <Identification />
       <div className="p-6 max-w-6xl mx-auto">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-16">
           Historique des feedbacks

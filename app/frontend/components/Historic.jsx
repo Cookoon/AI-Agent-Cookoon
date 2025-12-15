@@ -3,6 +3,7 @@ import NavBar from "./NavBar";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCopy } from "@fortawesome/free-regular-svg-icons";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
+import Identification from "./Identification";
 
 export default function Historic() {
   const [proposals, setProposals] = useState([]);
@@ -67,6 +68,7 @@ export default function Historic() {
   return (
     <div className="min-h-screen bg-gray-50">
       <NavBar />
+      <Identification />
 
       <div className="w-[70%] mx-auto pb-32">
         <h1 className="text-2xl font-bold mb-6 pt-16">Propositions Sauvegardées</h1>

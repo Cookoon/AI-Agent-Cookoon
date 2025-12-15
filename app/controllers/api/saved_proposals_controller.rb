@@ -47,11 +47,11 @@ def pdf
   pdf.font "NyghtSerif"
 
   # === PAGE DE GARDE - LOGO CENTRÉ ===
-  # Calculer la position pour centrer verticalement
+
   page_height = pdf.bounds.height
   page_width = pdf.bounds.width
-  logo_width = 200
-  logo_height = 200  # Estimation, ajustez selon votre logo
+  logo_width = 300
+  logo_height = 300
 
   # Centrer verticalement et horizontalement
   y_position = (page_height + logo_height) / 2
@@ -238,7 +238,8 @@ def fetch_airtable_image(table, name)
 
   # Essayer d'abord avec 'Nom', puis 'Name', puis 'name'
   ['Nom', 'Name', 'name'].each do |field_name|
-    filter = URI.encode_www_form_component("{#{field_name}}='#{clean_name}'")
+    # Utiliser le field_name courant pour la formule et recherche insensible à la casse
+    filter = URI.encode_www_form_component("LOWER({#{field_name}})=\"#{clean_name.downcase}\"")
     url = "https://api.airtable.com/v0/#{base_id}/#{table}?filterByFormula=#{filter}"
 
     Rails.logger.info "  🔍 Recherche avec {#{field_name}}: '#{clean_name}'"
@@ -249,30 +250,34 @@ def fetch_airtable_image(table, name)
 
       Rails.logger.info "  📊 Records trouvés: #{data['records']&.size || 0}"
 
-      if data['records']&.any?
-        record = data['records'].first
-        Rails.logger.info "  📝 Champs disponibles: #{record['fields'].keys.inspect}"
+      next unless data['records']&.any?
 
-        image_url = record.dig("fields", "photo", 0, "url")
+      record = data['records'].first
+      Rails.logger.info "  📝 Champs disponibles: #{record['fields'].keys.inspect}"
 
-        if image_url
-          image_data = URI.open(image_url).read
-          Rails.logger.info "  ✅ Image téléchargée: #{image_data.bytesize} bytes"
-          return image_data
-        else
-          Rails.logger.warn "  ⚠️ Pas de champ 'photo' dans le record"
+      # Récupérer toutes les images du champ 'photo'
+      images = record.dig("fields", "photo") || []
+      if images.any?
+        images.each do |img|
+          Rails.logger.info "  📷 Image trouvée: #{img['url']}"
         end
+        # Télécharger la première image (ou tu peux changer selon ton besoin)
+        image_data = URI.open(images.first['url']).read
+        Rails.logger.info "  ✅ Image téléchargée: #{image_data.bytesize} bytes"
+        return image_data
+      else
+        Rails.logger.warn "  ⚠️ Pas de champ 'photo' ou images vides dans le record"
       end
-    rescue => e
+    rescue OpenURI::HTTPError => e
       Rails.logger.debug "  Tentative avec {#{field_name}} échouée: #{e.message}"
+    rescue => e
+      Rails.logger.error "  ❌ Erreur inattendue: #{e.class} - #{e.message}"
+      Rails.logger.error "  #{e.backtrace.first(3).join("\n  ")}"
     end
   end
 
   Rails.logger.warn "  ❌ Aucune image trouvée pour '#{clean_name}' avec aucun des champs testés"
   nil
-rescue => e
-  Rails.logger.error "  ❌ Erreur: #{e.class} - #{e.message}"
-  Rails.logger.error "  #{e.backtrace.first(3).join("\n  ")}"
-  nil
 end
+
 end

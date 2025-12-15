@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import NavBar from "./NavBar";
 import ChatInput from "./ChatInput";
+import Identification from "./Identification";
 
 export default function AiApp() {
   const [prompt, setPrompt] = useState("");
@@ -113,6 +114,7 @@ const submitFeedback = async () => {
 
   return (
     <div className="content AvenirRegular">
+      <Identification />
       <NavBar />
       <div className="p-4 sm:p-6 min-h-screen bg-gray-100 flex justify-center">
         <div className="w-full sm:w-[90%] md:w-[80%] lg:w-[70%] space-y-6 pt-32"> {/* responsive width */}

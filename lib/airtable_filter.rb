@@ -13,12 +13,13 @@ class AirtableFilter
 
     filtered.select! { |c| c["type_of_cooking"].to_s.include?(criteria[:cuisine].to_s) } if criteria[:cuisine].present?
 
-    # Mots clés chefs : OR
     if criteria[:key_words_chefs].present?
       searched_words = criteria[:key_words_chefs].split(/[\s,;]+/)
       filtered.select! do |c|
         chef_keywords = c["key_words"].to_s.split(/[\s,;]+/)
-        chef_keywords.any? { |k| searched_words.any? { |w| k.include?(w) } }
+        chef_keywords.any? do |k|
+          searched_words.include?(k)
+        end
       end
     end
 
@@ -37,7 +38,6 @@ class AirtableFilter
     filtered = lieux.dup
 
     filtered.select! { |l| l["decor_style"].to_s.include?(criteria[:type_lieu].to_s) } if criteria[:type_lieu].present?
-
     filtered.select! { |l| l["price_fixed_lunch"].to_f <= criteria[:budget].to_f * 1.1 } if criteria[:budget].present?
 
     if criteria[:capacite].present?
@@ -45,12 +45,13 @@ class AirtableFilter
       filtered.select! { |l| columns.any? { |col| l[col].to_i >= criteria[:capacite].to_i } }
     end
 
-    # Mots clés lieux : OR
     if criteria[:key_words_lieux].present?
       searched_words = criteria[:key_words_lieux].split(/[\s,;]+/)
       filtered.select! do |l|
         lieu_keywords = l["key_words"].to_s.split(/[\s,;]+/)
-        lieu_keywords.any? { |k| searched_words.any? { |w| k.include?(w) } }
+        lieu_keywords.any? do |k|
+          searched_words.include?(k)
+        end
       end
     end
 

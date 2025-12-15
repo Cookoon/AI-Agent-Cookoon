@@ -68,7 +68,8 @@ end
       5. Les feedbacks précédents doivent t'aider à améliorer la qualité des suggestions mais ne doivent pas être ta source principal pour prendre une décision.
 
       **FORMAT DE RÉPONSE OBLIGATOIRE** :
-
+      
+      Met les plus pertinents en premier
       CHEFS :
       [Nom du Chef 1]
       [Description]

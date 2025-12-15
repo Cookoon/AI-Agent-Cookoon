@@ -55,8 +55,8 @@ export default function FeedbackView() {
       <NavBar />
       <Identification />
       <div className="p-6 max-w-6xl mx-auto">
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-16">
-          Historique des feedbacks
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-16 pt-16">
+          Feedbacks
         </h1>
 
         {loading ? (
@@ -64,7 +64,7 @@ export default function FeedbackView() {
             <div className="animate-pulse text-gray-500">Chargement des feedbacks...</div>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">Aucun feedback trouvé.</div>
+          <div className="text-center py-12 text-gray-500">Aucun feedback pour le moment.</div>
         ) : (
           <div className="space-y-4">
             {filtered.map((fb) => (

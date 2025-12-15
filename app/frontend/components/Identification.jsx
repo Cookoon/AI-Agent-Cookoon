@@ -53,7 +53,6 @@ export default function Identification() {
 
         <div className="flex justify-end">
           <button
-
             onClick={handleSubmit}
             className="px-4 py-2 bg-[#cabb90] text-white rounded hover:bg-[#b5b083]"
           >

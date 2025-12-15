@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import NavBar from "./NavBar";
 import Identification from "./Identification";
 
-export default function FeedbackView() {
+export default function FeedbackView( ) {
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
@@ -53,7 +53,7 @@ export default function FeedbackView() {
   return (
     <>
       <NavBar />
-      <Identification />
+      <Identification/>
       <div className="p-6 max-w-6xl mx-auto">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-16 pt-16">
           Feedbacks
@@ -76,6 +76,7 @@ export default function FeedbackView() {
                   <p className="mt-3 text-xs text-gray-500">
                     {fb.created_at ? new Date(fb.created_at).toLocaleString() : "Date inconnue"}
                   </p>
+                <p className="mt-12 text-gray-500">Créé par : <span className="italic">{fb.creator}</span></p>
                 </div>
 
                 <div className="flex-1">

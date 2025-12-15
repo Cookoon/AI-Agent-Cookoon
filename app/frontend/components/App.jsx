@@ -3,7 +3,7 @@ import NavBar from "./NavBar";
 import ChatInput from "./ChatInput";
 import Identification from "./Identification";
 
-export default function AiApp() {
+export default function AiApp( ) {
   const [prompt, setPrompt] = useState("");
   const [resultText, setResultText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -11,6 +11,21 @@ export default function AiApp() {
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [chefs, setChefs] = useState([]);
   const [lieux, setLieux] = useState([]);
+  const [showTitle, setShowTitle] = useState(true);
+   const [currentUser, setCurrentUser] = useState(() => {
+
+    return localStorage.getItem('ai_current_user') || '';
+  });
+
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('ai_current_user', currentUser);
+    }
+  }, [currentUser]);
+
+
+
 
   // Reset historique au refresh
   useEffect(() => localStorage.removeItem("prompt_history"), []);
@@ -51,6 +66,7 @@ export default function AiApp() {
       setLieux([]);
     } finally {
       setLoading(false);
+      setShowTitle(false);
     }
   };
 
@@ -68,6 +84,7 @@ export default function AiApp() {
           prompt_text: prompt,
           result_text: resultText,
           rating,
+          creator: currentUser,
         }),
       });
 
@@ -113,6 +130,7 @@ export default function AiApp() {
         body: JSON.stringify({
           last_prompt: prompt,
           proposal_text: resultText,
+          creator: currentUser,
         }),
       });
 
@@ -124,26 +142,43 @@ export default function AiApp() {
 
   return (
     <div className="content AvenirRegular">
-      <Identification />
+      <Identification setCurrentUser={setCurrentUser}/>
       <NavBar />
       <div className="p-4 sm:p-6 min-h-screen bg-gray-100 flex justify-center">
-        <div className="w-full sm:w-[90%] md:w-[80%] lg:w-[70%] space-y-6 pt-32">
-          <h1 className="text-2xl sm:text-3xl font-bold text-center">
-            Assistant AI
-          </h1>
+        <div className="w-full sm:w-[90%] md:w-[80%] lg:w-[70%] space-y-6 pt-16">
+
+              {showTitle === true && (
+                <>
+                  <h2
+                    className="pt-16 mx-auto text-center text-2xl sm:text-3xl text-gray-800 italic tracking-wide leading-tight"
+                    style={{ fontFamily: "NyghtSerif, serif" }}
+                  >
+                    Bonjour {currentUser},
+                  </h2>
+
+                  <h3
+                    className="mx-auto text-center text-md sm:text-lg text-gray-600 italic tracking-wide leading-tight"
+                  >
+                    Que puis-je vous proposer aujourd'hui ?
+                  </h3>
+                </>
+              )}
+
 
           {/* --- Résultat --- */}
           {resultText && (
-            <div className="bg-white p-5 rounded-lg shadow-md space-y-4">
-              <h3 className="font-semibold text-lg text-gray-800">Propostions</h3>
+            <div className="bg-white p-5 rounded-lg shadow-md space-y-4 min-h-[70vh]">
+
+              <h3 className=" font-semibold text-lg text-gray-800">Propostions :</h3>
 
               <div className="flex flex-col md:flex-row gap-6">
                 {/* --- CHEFS --- */}
-                <div className="md:w-1/2 bg-gray-50 p-3 rounded-md overflow-y-auto max-h-96">
-                  <h4 className="font-semibold mb-2">Chefs</h4>
+                <div className="md:w-1/2 bg-gray-50 p-3 rounded-md overflow-y-auto max-h-[70vh]">
+
+                  <h4 className="font-semibold mb-2 text-[#cabb90]">Chefs</h4>
                   {chefs.length > 0 ? (
                     chefs.map((c, i) => (
-                      <div key={i} className="mb-3 p-2 border rounded">
+                      <div key={i} className="mb-3 p-2 border border-[#cabb90] rounded">
                         {c.map((line, idx) => (
                           <p key={idx}>{line}</p>
                         ))}
@@ -155,11 +190,12 @@ export default function AiApp() {
                 </div>
 
                 {/* --- LIEUX --- */}
-                <div className="md:w-1/2 bg-gray-50 p-3 rounded-md overflow-y-auto max-h-96">
-                  <h4 className="font-semibold mb-2">Lieux</h4>
+                <div className="md:w-1/2 bg-gray-50 p-3 rounded-md overflow-y-auto max-h-[70vh]">
+
+                  <h4 className="font-semibold mb-2 text-[#cabb90]">Lieux</h4>
                   {lieux.length > 0 ? (
                     lieux.map((l, i) => (
-                      <div key={i} className="mb-3 p-2 border rounded">
+                      <div key={i} className="mb-3 p-2 border border-[#cabb90] rounded">
                         {l.map((line, idx) => (
                           <p key={idx}>{line}</p>
                         ))}

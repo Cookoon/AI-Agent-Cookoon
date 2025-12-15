@@ -4,7 +4,7 @@ class Api::SavedProposalsController < ApplicationController
   protect_from_forgery with: :null_session
   skip_before_action :verify_authenticity_token
 
-  def index
+   def index
     proposals = SavedProposal.order(created_at: :desc)
     render json: proposals
   rescue => e
@@ -12,26 +12,37 @@ class Api::SavedProposalsController < ApplicationController
     render json: { error: e.message }, status: :internal_server_error
   end
 
+  # POST /api/saved_proposals
   def create
-    proposal = SavedProposal.new(
-      last_prompt: params[:last_prompt],
-      proposal_text: params[:proposal_text]
-    )
+    proposal = SavedProposal.new(saved_proposal_params)
 
     if proposal.save
-      render json: proposal
+      render json: proposal, status: :created
     else
       render json: { error: proposal.errors.full_messages.join(", ") }, status: :unprocessable_entity
     end
+  rescue => e
+    Rails.logger.error "[SavedProposals#create] #{e.message}"
+    render json: { error: e.message }, status: :internal_server_error
   end
 
+  # DELETE /api/saved_proposals/:id
   def destroy
     proposal = SavedProposal.find(params[:id])
     proposal.destroy
     render json: { message: "Proposition supprimée" }
   rescue => e
+    Rails.logger.error "[SavedProposals#destroy] #{e.message}"
     render json: { error: e.message }, status: :internal_server_error
   end
+
+  private
+
+  def saved_proposal_params
+    # Ici on whitelist les params reçus du front, y compris :creator
+    params.permit(:last_prompt, :proposal_text, :creator)
+  end
+
 
 
 def pdf

@@ -12,12 +12,13 @@ class Api::FeedbacksController < ApplicationController
 
   # POST /api/feedbacks
   def create
-    clean_result = extract_names(params[:result_text])
+    clean_result = extract_names(feedback_params[:result_text])
 
     feedback = Feedback.new(
-      prompt_text: params[:prompt_text],
+      prompt_text: feedback_params[:prompt_text],
       result_text: clean_result,
-      rating: params[:rating]
+      rating: feedback_params[:rating],
+      creator: feedback_params[:creator]
     )
 
     if feedback.save
@@ -25,6 +26,8 @@ class Api::FeedbacksController < ApplicationController
     else
       render json: { error: feedback.errors.full_messages.join(", ") }, status: :unprocessable_entity
     end
+  rescue => e
+    render json: { error: e.message }, status: :internal_server_error
   end
 
   # DELETE /api/feedbacks/:id
@@ -42,12 +45,16 @@ class Api::FeedbacksController < ApplicationController
 
   private
 
+  def feedback_params
+    params.permit(:prompt_text, :result_text, :rating, :creator)
+  end
+
   def extract_names(text)
     text.lines
         .map(&:strip)
         .reject(&:empty?)
         .reject { |l| l =~ /CHEFS|LIEUX|type de cuisine|reconnue|prix|total|€|personnes|style|correspond|arrondissement|dîner|déjeuner|fixe|minimum/i }
-        .select { |l| l.split.size <= 6 } # filtre pour garder juste les noms
+        .select { |l| l.split.size <= 6 }
         .uniq
         .join(", ")
   end

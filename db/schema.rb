@@ -10,13 +10,14 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_12_04_144728) do
+ActiveRecord::Schema[7.1].define(version: 2025_12_15_141125) do
   create_table "feedbacks", force: :cascade do |t|
     t.text "prompt_text", null: false
     t.text "result_text", null: false
     t.integer "rating", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "creator"
   end
 
   create_table "saved_proposals", force: :cascade do |t|
@@ -24,6 +25,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_12_04_144728) do
     t.text "proposal_text"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "creator"
   end
 
 end

@@ -85,7 +85,7 @@ export default function Historic() {
                   <span className="font-semibold text-gray-600">Prompt :</span>
                   <div className="text-gray-700 truncate">{p.last_prompt}</div>
                 </div>
-                
+
                 <div className="mb-3">
                   <span className="font-semibold text-gray-600">Proposition :</span>
                   <pre className="whitespace-pre-wrap max-h-40 overflow-auto text-sm text-gray-700 bg-gray-50 p-3 rounded mt-1">
@@ -119,6 +119,12 @@ export default function Historic() {
                   >
                     Télécharger PDF
                   </button>
+               <div className="w-full">
+                <p className="text-gray-500 text-right">
+                  Sauvegardé par <span className="italic">{p.creator}</span>
+                </p>
+              </div>
+
                 </div>
               </div>
             ))}

@@ -58,7 +58,7 @@ export default function FeedbackView( ) {
         <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-16 pt-16">
           Feedbacks
         </h1>
-
+        <div className="mb-16">
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <div className="animate-pulse text-gray-500">Chargement des feedbacks...</div>
@@ -71,12 +71,12 @@ export default function FeedbackView( ) {
               <article key={fb.id} className="bg-white shadow-sm border rounded-lg p-4 flex flex-col sm:flex-row sm:items-start gap-4">
                 <div className="w-full sm:w-56 flex-shrink-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-yellow-600 font-medium">{fb.rating ? `${fb.rating} ★` : "—"}</span>
+                    <span className="text-xl  text-yellow-600 font-medium">{fb.rating ? `${fb.rating} ★` : "—"}</span>
                   </div>
                   <p className="mt-3 text-xs text-gray-500">
                     {fb.created_at ? new Date(fb.created_at).toLocaleString() : "Date inconnue"}
                   </p>
-                <p className="mt-12 text-gray-500">Créé par : <span className="italic">{fb.creator}</span></p>
+                <p className="mt-3 text-gray-500">Créé par : <span className="italic">{fb.creator}</span></p>
                 </div>
 
                 <div className="flex-1">
@@ -100,7 +100,9 @@ export default function FeedbackView( ) {
               </article>
             ))}
           </div>
+
         )}
+        </div>
       </div>
     </>
   );

@@ -70,7 +70,7 @@ export default function Historic() {
       <NavBar />
       <Identification />
 
-      <div className="w-[70%] mx-auto pb-32">
+      <div className="w-[90%] mx-auto pb-32">
         <h1 className="text-2xl font-bold mb-6 pt-16">Propositions Sauvegardées</h1>
 
         {loading ? (
@@ -88,7 +88,7 @@ export default function Historic() {
 
                 <div className="mb-3">
                   <span className="font-semibold text-gray-600">Proposition :</span>
-                  <pre className="whitespace-pre-wrap max-h-40 overflow-auto text-sm text-gray-700 bg-gray-50 p-3 rounded mt-1">
+                  <pre className="whitespace-pre-wrap font-avenir max-h-40 overflow-auto text-sm text-gray-700 bg-gray-50 p-3 rounded mt-1">
                     {p.proposal_text}
                   </pre>
                 </div>

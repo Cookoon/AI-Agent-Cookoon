@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import NavBar from "./NavBar";
-import ChatInput from "./ChatInput";
 import Identification from "./Identification";
-import { UserProvider } from "./UserContext";
+import { UserProvider, UserContext } from "./UserContext";
 
+function AiAppContent() {
+  const { currentUser, setCurrentUser } = useContext(UserContext);
 
-export default function AiApp( ) {
   const [prompt, setPrompt] = useState("");
   const [resultText, setResultText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -14,20 +14,14 @@ export default function AiApp( ) {
   const [chefs, setChefs] = useState([]);
   const [lieux, setLieux] = useState([]);
   const [showTitle, setShowTitle] = useState(true);
-   const [currentUser, setCurrentUser] = useState(() => {
 
-    return localStorage.getItem('ai_current_user') || '';
-  });
-
-
+  // Vérifie la session au chargement
   useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem('ai_current_user', currentUser);
-    }
-  }, [currentUser]);
-
-
-
+    fetch("/api/me", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => setCurrentUser(data.name))
+      .catch(() => setCurrentUser(""));
+  }, [setCurrentUser]);
 
   // Reset historique au refresh
   useEffect(() => localStorage.removeItem("prompt_history"), []);
@@ -42,13 +36,13 @@ export default function AiApp( ) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt }),
+        credentials: "include",
       });
 
       const data = await res.json();
       const text = data.resultText || "Aucun résultat";
       setResultText(text);
 
-      // --- Parse CHEFS / LIEUX ---
       const chefsMatch = text.match(/CHEFS\s*:(.*?)(?=LIEUX\s*:|$)/s);
       const lieuxMatch = text.match(/LIEUX\s*:(.*)/s);
 
@@ -88,15 +82,14 @@ export default function AiApp( ) {
           rating,
           creator: currentUser,
         }),
+        credentials: "include",
       });
 
       const data = await res.json().catch(() => {
         throw new Error("Réponse du serveur invalide (non JSON)");
       });
 
-      if (!res.ok) {
-        throw new Error(data.error || `Erreur HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(data.error || `Erreur HTTP ${res.status}`);
 
       setFeedbackSent(true);
       setTimeout(() => setFeedbackSent(false), 3000);
@@ -134,6 +127,7 @@ export default function AiApp( ) {
           proposal_text: resultText,
           creator: currentUser,
         }),
+        credentials: "include",
       });
 
       alert("💾 Proposition sauvegardée !");
@@ -144,73 +138,61 @@ export default function AiApp( ) {
 
   return (
     <div className="content AvenirRegular">
-       <UserProvider>
-      <Identification setCurrentUser={setCurrentUser}/>
+      <Identification />
 
       <div className="p-4 sm:p-6 min-h-screen bg-gray-100 flex justify-center">
         <div className="w-full sm:w-[90%] md:w-[80%] lg:w-[70%] space-y-6 pt-16">
+          {showTitle && (
+            <>
+              <h2
+                className="pt-16 mx-auto text-center text-2xl sm:text-3xl text-gray-800 italic tracking-wide leading-tight"
+                style={{ fontFamily: "NyghtSerif, serif" }}
+              >
+                Bonjour {currentUser || "Invité"},
+              </h2>
 
-              {showTitle === true && (
-                <>
-                  <h2
-                    className="pt-16 mx-auto text-center text-2xl sm:text-3xl text-gray-800 italic tracking-wide leading-tight"
-                    style={{ fontFamily: "NyghtSerif, serif" }}
-                  >
-                    Bonjour {currentUser},
-                  </h2>
-
-                  <h3
-                    className="mx-auto text-center text-md sm:text-lg text-gray-600 italic tracking-wide leading-tight"
-                  >
-                    Que puis-je vous proposer aujourd'hui ?
-                  </h3>
-                </>
-              )}
-
+              <h3 className="mx-auto text-center text-md sm:text-lg text-gray-600 italic tracking-wide leading-tight">
+                Que puis-je vous proposer aujourd'hui ?
+              </h3>
+            </>
+          )}
 
           {/* --- Résultat --- */}
           {resultText && (
             <div className="bg-white p-5 rounded-lg shadow-md space-y-4 min-h-[70vh]">
-
-              <h3 className=" font-semibold text-lg text-gray-800">Propostions :</h3>
+              <h3 className="font-semibold text-lg text-gray-800">Propositions :</h3>
 
               <div className="flex flex-col md:flex-row gap-6">
-                {/* --- CHEFS --- */}
+                {/* CHEFS */}
                 <div className="md:w-1/2 bg-gray-50 p-3 rounded-md overflow-y-auto max-h-[70vh]">
-
                   <h4 className="font-semibold mb-2 text-[#cabb90]">Chefs</h4>
-                  {chefs.length > 0 ? (
-                    chefs.map((c, i) => (
-                      <div key={i} className="mb-3 p-2 border border-[#cabb90] rounded">
-                        {c.map((line, idx) => (
-                          <p key={idx}>{line}</p>
-                        ))}
-                      </div>
-                    ))
-                  ) : (
-                    <p>Aucun chef trouvé</p>
-                  )}
+                  {chefs.length > 0
+                    ? chefs.map((c, i) => (
+                        <div key={i} className="mb-3 p-2 border border-[#cabb90] rounded">
+                          {c.map((line, idx) => (
+                            <p key={idx}>{line}</p>
+                          ))}
+                        </div>
+                      ))
+                    : "Aucun chef trouvé"}
                 </div>
 
-                {/* --- LIEUX --- */}
+                {/* LIEUX */}
                 <div className="md:w-1/2 bg-gray-50 p-3 rounded-md overflow-y-auto max-h-[70vh]">
-
                   <h4 className="font-semibold mb-2 text-[#cabb90]">Lieux</h4>
-                  {lieux.length > 0 ? (
-                    lieux.map((l, i) => (
-                      <div key={i} className="mb-3 p-2 border border-[#cabb90] rounded">
-                        {l.map((line, idx) => (
-                          <p key={idx}>{line}</p>
-                        ))}
-                      </div>
-                    ))
-                  ) : (
-                    <p>Aucun lieu trouvé</p>
-                  )}
+                  {lieux.length > 0
+                    ? lieux.map((l, i) => (
+                        <div key={i} className="mb-3 p-2 border border-[#cabb90] rounded">
+                          {l.map((line, idx) => (
+                            <p key={idx}>{line}</p>
+                          ))}
+                        </div>
+                      ))
+                    : "Aucun lieu trouvé"}
                 </div>
               </div>
 
-              {/* --- Feedback / Sauvegarde --- */}
+              {/* Feedback / Sauvegarde */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <StarRating />
@@ -221,11 +203,7 @@ export default function AiApp( ) {
                   >
                     Envoyer
                   </button>
-                  {feedbackSent && (
-                    <div className="flex items-center ml-2">
-                      <p className="text-gray-600 text-sm">Feedback envoyé</p>
-                    </div>
-                  )}
+                  {feedbackSent && <p className="text-gray-600 text-sm ml-2">Feedback envoyé</p>}
                 </div>
 
                 <button
@@ -239,12 +217,12 @@ export default function AiApp( ) {
             </div>
           )}
 
-          {/* --- Formulaire prompt --- */}
+          {/* Formulaire prompt */}
           <div className="text-area-container">
             <div className="flex flex-col bg-gray-100 p-3 sm:p-4 rounded-full">
               <textarea
                 className="w-full px-4 py-2 border rounded-full resize-none focus:border-[#cabb90] focus:outline-none text-sm sm:text-base"
-                placeholder="Entrez votre demande la plus détaillée possible : chefs, types de cuisine, lieu, type de lieu, budget, nombre de guests, occasion..."
+                placeholder="Entrez votre demande la plus détaillée possible..."
                 value={prompt}
                 style={{ height: "auto", maxHeight: "7.5rem", overflowY: "auto" }}
                 rows={1}
@@ -259,12 +237,6 @@ export default function AiApp( ) {
                   if (isSubmit) {
                     e.preventDefault();
                     handleSubmit();
-                  } else {
-                    setTimeout(() => {
-                      e.target.style.height = "auto";
-                      const newHeight = Math.min(e.target.scrollHeight, 7.5 * 16) + "px";
-                      e.target.style.height = newHeight;
-                    }, 0);
                   }
                 }}
               />
@@ -280,7 +252,14 @@ export default function AiApp( ) {
           </div>
         </div>
       </div>
-      </UserProvider>
     </div>
+  );
+}
+
+export default function AiApp() {
+  return (
+    <UserProvider>
+      <AiAppContent />
+    </UserProvider>
   );
 }

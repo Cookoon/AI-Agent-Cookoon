@@ -8,8 +8,8 @@ export function UserProvider({ children }) {
 
   useEffect(() => {
     fetch("/api/me", { credentials: "include" })
-      .then((res) => res.ok ? res.json() : Promise.reject())
-      .then((data) => setCurrentUser(data.name))
+      .then(res => res.ok ? res.json() : Promise.reject())
+      .then(data => setCurrentUser(data.name))
       .catch(() => setCurrentUser(""))
       .finally(() => setCheckingAuth(false));
   }, []);
@@ -17,7 +17,6 @@ export function UserProvider({ children }) {
   const logout = async () => {
     await fetch("/api/logout", { method: "DELETE", credentials: "include" });
     setCurrentUser("");
-    localStorage.removeItem("ai_current_user");
   };
 
   return (

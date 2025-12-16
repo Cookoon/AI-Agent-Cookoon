@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_12_15_141125) do
+ActiveRecord::Schema[7.1].define(version: 2025_12_16_093729) do
   create_table "feedbacks", force: :cascade do |t|
     t.text "prompt_text", null: false
     t.text "result_text", null: false
@@ -26,6 +26,13 @@ ActiveRecord::Schema[7.1].define(version: 2025_12_15_141125) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "creator"
+  end
+
+  create_table "users", force: :cascade do |t|
+    t.string "name"
+    t.string "password_digest"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
 end

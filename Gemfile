@@ -14,6 +14,12 @@ gem 'pg'
 
 gem "prawn"
 
+gem "bcrypt", "~> 3.1"
+
+gem 'rack-cors', require: 'rack/cors'
+
+
+
 
 
 
@@ -71,4 +77,3 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
 end
-

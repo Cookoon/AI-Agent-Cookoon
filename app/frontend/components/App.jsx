@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import NavBar from "./NavBar";
 import ChatInput from "./ChatInput";
 import Identification from "./Identification";
+import { UserProvider } from "./UserContext";
+
 
 export default function AiApp( ) {
   const [prompt, setPrompt] = useState("");
@@ -142,8 +144,9 @@ export default function AiApp( ) {
 
   return (
     <div className="content AvenirRegular">
+       <UserProvider>
       <Identification setCurrentUser={setCurrentUser}/>
-      <NavBar />
+
       <div className="p-4 sm:p-6 min-h-screen bg-gray-100 flex justify-center">
         <div className="w-full sm:w-[90%] md:w-[80%] lg:w-[70%] space-y-6 pt-16">
 
@@ -277,6 +280,7 @@ export default function AiApp( ) {
           </div>
         </div>
       </div>
+      </UserProvider>
     </div>
   );
 }

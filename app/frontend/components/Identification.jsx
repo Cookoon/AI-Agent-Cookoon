@@ -1,72 +1,83 @@
-import React, { useState, useEffect, use } from 'react';
+// src/components/Identification.jsx
+import React, { useState, useContext, useEffect } from "react";
+import { UserContext } from "./UserContext";
 
-const ONE_HOUR = 60 * 60 * 1000; // 1 heure en ms
+const ONE_HOUR = 60 * 60 * 1000;
 
-export default function Identification({ setCurrentUser, currentUser }) {
+export default function Identification() {
+  const { currentUser, setCurrentUser, checkingAuth } = useContext(UserContext);
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
   const [isLocked, setIsLocked] = useState(false);
-  const [password, setPassword] = useState('');
 
+  // On attend la vérification de session
   useEffect(() => {
-    const lastAuth = localStorage.getItem('ai_last_auth');
-
-    if (!lastAuth) {
+    const lastAuth = localStorage.getItem("ai_last_auth");
+    if (
+      !currentUser ||
+      !lastAuth ||
+      Date.now() - Number(lastAuth) > ONE_HOUR
+    ) {
       setIsLocked(true);
-      return;
-    }
-
-    const elapsed = Date.now() - Number(lastAuth);
-
-    if (elapsed > ONE_HOUR) {
-      setIsLocked(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (currentUser === '') {
-      setIsLocked(true);
+    } else {
+      setIsLocked(false);
     }
   }, [currentUser]);
 
-  const handleSubmit = () => {
-    let user = null;
+  const handleSubmit = async () => {
+    if (!name || !password) {
+      return alert("Veuillez remplir le nom et le mot de passe");
+    }
 
-    if (password === import.meta.env.VITE_AI_PASSWORD_ADMIN) user = 'Valentin';
-    else if (password === import.meta.env.VITE_AI_PASSWORD_ALEX) user = 'Alex';
-    else if (password === import.meta.env.VITE_AI_PASSWORD_AUDE) user = 'Aude';
-    else if (password === import.meta.env.VITE_AI_PASSWORD_MARGOT) user = 'Margot';
-    else if (password === import.meta.env.VITE_AI_PASSWORD_GREGORY) user = 'Grégory';
-    else if (password === import.meta.env.VITE_AI_PASSWORD_CLARA) user = 'Clara';
-    else if (password === import.meta.env.VITE_AI_PASSWORD_LOANN) user = 'Loann';
+    try {
+      const res = await fetch("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name, password }),
+      });
 
-    if (user) {
-      localStorage.setItem('ai_last_auth', Date.now().toString());
-      setIsLocked(false);
-      setPassword('');
-      setCurrentUser(user);
-      localStorage.setItem('ai_current_user', user);
-    } else {
-      alert('Wrong password');
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentUser(data.name);
+        localStorage.setItem("ai_last_auth", Date.now().toString());
+        setPassword("");
+        setIsLocked(false);
+      } else if (res.status === 422 || res.status === 401) {
+        alert("Nom ou mot de passe incorrect");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erreur serveur");
     }
   };
 
+  // On ne rend rien tant que la session n’est pas vérifiée
+  if (checkingAuth) return null;
+
+  // Si pas verrouillé, rien à afficher
   if (!isLocked) return null;
 
   return (
-    <>
-
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-xl">
-        <h2 className="text-2xl font-semibold mb-4">Session verrouillée</h2>
+        <h2 className="text-2xl font-semibold mb-4">Identification</h2>
+
+        <input
+          type="text"
+          placeholder="Nom"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full px-4 py-2 border rounded mb-4 focus:outline-none focus:ring-2 focus:ring-[#cabb90]"
+        />
 
         <input
           type="password"
-          placeholder="Entrer le mot de passe"
+          placeholder="Mot de passe"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
           className="w-full px-4 py-2 border rounded mb-4 focus:outline-none focus:ring-2 focus:ring-[#cabb90]"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSubmit();
-          }}
         />
 
         <div className="flex justify-end">
@@ -74,11 +85,10 @@ export default function Identification({ setCurrentUser, currentUser }) {
             onClick={handleSubmit}
             className="px-4 py-2 bg-[#cabb90] text-white rounded hover:bg-[#b5b083]"
           >
-            Déverrouiller
+            Se connecter
           </button>
         </div>
       </div>
     </div>
-    </>
   );
 }

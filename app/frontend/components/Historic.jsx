@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import NavBar from "./NavBar";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCopy } from "@fortawesome/free-regular-svg-icons";
@@ -67,10 +67,9 @@ export default function Historic() {
   // ------------------- Render -------------------
   return (
     <div className="min-h-screen bg-gray-50">
-      <NavBar />
-      <Identification />
 
-      <div className="w-[90%] mx-auto pb-32">
+     
+      <div className="w-[70%] mx-auto pb-32">
         <h1 className="text-2xl font-bold mb-6 pt-16">Propositions Sauvegardées</h1>
 
         {loading ? (

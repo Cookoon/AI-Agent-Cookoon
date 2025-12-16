@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (rootNode) {
     createRoot(rootNode).render(
       <UserProvider>
-        <Identification/>
+       
         <NavBar />
         <App />
       </UserProvider>
@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (feedbackNode) {
     createRoot(feedbackNode).render(
       <UserProvider>
-        <Identification/>
+       
         <NavBar />
         <FeedbackView />
       </UserProvider>
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     import('../components/Historic.jsx').then(({ default: Historic }) => {
       createRoot(historicNode).render(
         <UserProvider>
-          <Identification/>
+         
           <NavBar />
           <Historic />
         </UserProvider>

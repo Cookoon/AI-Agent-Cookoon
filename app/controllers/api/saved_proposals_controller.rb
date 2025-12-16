@@ -36,13 +36,6 @@ class Api::SavedProposalsController < ApplicationController
     render json: { error: e.message }, status: :internal_server_error
   end
 
-  private
-
-  def saved_proposal_params
-    # Ici on whitelist les params reçus du front, y compris :creator
-    params.permit(:last_prompt, :proposal_text, :creator)
-  end
-
 
 
 def pdf
@@ -290,5 +283,14 @@ def fetch_airtable_image(table, name)
   Rails.logger.warn "  ❌ Aucune image trouvée pour '#{clean_name}' avec aucun des champs testés"
   nil
 end
+
+  private
+
+  def saved_proposal_params
+    # Ici on whitelist les params reçus du front, y compris :creator
+    params.permit(:last_prompt, :proposal_text, :creator)
+  end
+
+
 
 end

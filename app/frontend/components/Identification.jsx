@@ -24,33 +24,32 @@ export default function Identification() {
     }
   }, [currentUser]);
 
-  const handleSubmit = async () => {
-    if (!name || !password) {
-      return alert("Veuillez remplir le nom et le mot de passe");
-    }
+const handleSubmit = async () => {
+  if (!name || !password) {
+    return alert("Veuillez remplir le nom et le mot de passe");
+  }
 
-    try {
-      const res = await fetch("http://localhost:3000/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ name, password }),
-      });
+  const API_URL = import.meta.env.VITE_API_URL;
 
-      if (res.ok) {
-        const data = await res.json();
-        setCurrentUser(data.name);
-        localStorage.setItem("ai_last_auth", Date.now().toString());
-        setPassword("");
-        setIsLocked(false);
-      } else if (res.status === 422 || res.status === 401) {
-        alert("Nom ou mot de passe incorrect");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Erreur serveur");
-    }
-  };
+  const res = await fetch(`${API_URL}/api/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ name, password }),
+  });
+
+  if (res.ok) {
+    const data = await res.json();
+    setCurrentUser(data.name);
+    localStorage.setItem("ai_last_auth", Date.now().toString());
+    setPassword("");
+    setIsLocked(false);
+  } else if (res.status === 422 || res.status === 401) {
+    alert("Nom ou mot de passe incorrect");
+  }
+
+};
+
 
   // On ne rend rien tant que la session n’est pas vérifiée
   if (checkingAuth) return null;

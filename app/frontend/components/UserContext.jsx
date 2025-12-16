@@ -5,18 +5,19 @@ export const UserContext = createContext();
 
 export function UserProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
-  const [checkingAuth, setCheckingAuth] = useState(true); // nouveau
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // Détermine l'URL de l'API selon l'environnement
+  const API_URL = import.meta.env.VITE_API_URL || window.location.origin;
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/me", { credentials: "include" })
-      .then(res => {
-        if (res.ok) return res.json();
-        return null;
-      })
+    fetch(`${API_URL}/api/me`, { credentials: "include" })
+      .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data?.name) setCurrentUser(data.name);
       })
-      .finally(() => setCheckingAuth(false)); // on a fini de vérifier
+      .catch(err => console.error("Erreur fetch /api/me :", err))
+      .finally(() => setCheckingAuth(false));
   }, []);
 
   return (

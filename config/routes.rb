@@ -19,13 +19,15 @@ Rails.application.routes.draw do
     member do
       get :pdf # <--- Nouvelle route
     end
+
+
   end
 
    post "/login", to: "sessions#create"
   get  "/me",    to: "sessions#me"
   delete "/logout", to: "sessions#destroy"
 
-  
+
   end
 
   root 'pages#home'

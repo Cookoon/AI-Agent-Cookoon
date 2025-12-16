@@ -40,7 +40,8 @@ export default function Historic() {
     if (!confirm("Voulez-vous vraiment supprimer cette proposition ?")) return;
 
     try {
-      const res = await fetch(`${API_URL}/api/saved_proposals/${id}`, { method: "DELETE" });
+      fetch(`/api/saved_proposals/${id}`, { method: "DELETE" });
+
       if (!res.ok) throw new Error("Erreur lors de la suppression");
       setProposals(proposals.filter((p) => p.id !== id));
     } catch (err) {
@@ -60,7 +61,8 @@ export default function Historic() {
 
   // ------------------- Download PDF -------------------
   const handleDownloadPDF = (id) => {
-    window.open(`${API_URL}/api/saved_proposals/${id}/pdf`, "_blank");
+    window.open(`/api/saved_proposals/${id}/pdf`, "_blank");
+
   };
 
   // ------------------- Render -------------------

@@ -36,19 +36,24 @@ export default function Historic() {
   }, []);
 
   // ------------------- Delete Proposal -------------------
-  const handleDelete = async (id) => {
-    if (!confirm("Voulez-vous vraiment supprimer cette proposition ?")) return;
+const handleDelete = async (id) => {
+  if (!confirm("Voulez-vous vraiment supprimer cette proposition ?")) return;
 
-    try {
-      fetch(`/api/saved_proposals/${id}`, { method: "DELETE" });
+  try {
+    const res = await fetch(`/api/saved_proposals/${id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
 
-      if (!res.ok) throw new Error("Erreur lors de la suppression");
-      setProposals(proposals.filter((p) => p.id !== id));
-    } catch (err) {
-      console.error(err);
-      alert("Impossible de supprimer la proposition : " + err.message);
-    }
-  };
+    if (!res.ok) throw new Error("Erreur lors de la suppression");
+
+    setProposals((prev) => prev.filter((p) => p.id !== id));
+  } catch (err) {
+    console.error(err);
+    alert("Impossible de supprimer la proposition : " + err.message);
+  }
+};
+
 
   // ------------------- Copy to Clipboard -------------------
   const handleCopy = (id, text) => {

@@ -1,27 +1,31 @@
-// src/components/UserContext.jsx
 import React, { createContext, useState, useEffect } from "react";
 
 export const UserContext = createContext();
 
 export function UserProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState("");
   const [checkingAuth, setCheckingAuth] = useState(true);
 
-  // Détermine l'URL de l'API selon l'environnement
-
-
+  // Vérifie la session au chargement
   useEffect(() => {
-    fetch(`/api/me`, { credentials: "include" })
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data?.name) setCurrentUser(data.name);
+    fetch("/api/me", { credentials: "include" })
+      .then((res) => {
+        if (res.ok) return res.json();
+        throw new Error("Non connecté");
       })
-      .catch(err => console.error("Erreur fetch /api/me :", err))
+      .then((data) => setCurrentUser(data.name))
+      .catch(() => setCurrentUser(""))
       .finally(() => setCheckingAuth(false));
   }, []);
 
+  const logout = async () => {
+    await fetch("/api/logout", { method: "DELETE", credentials: "include" });
+    setCurrentUser("");
+    localStorage.removeItem("ai_current_user");
+  };
+
   return (
-    <UserContext.Provider value={{ currentUser, setCurrentUser, checkingAuth }}>
+    <UserContext.Provider value={{ currentUser, setCurrentUser, checkingAuth, logout }}>
       {children}
     </UserContext.Provider>
   );

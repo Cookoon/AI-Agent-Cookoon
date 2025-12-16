@@ -8,10 +8,10 @@ export function UserProvider({ children }) {
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   // Détermine l'URL de l'API selon l'environnement
-  const API_URL = import.meta.env.VITE_API_URL || window.location.origin;
+
 
   useEffect(() => {
-    fetch(`${API_URL}/api/me`, { credentials: "include" })
+    fetch(`/api/me`, { credentials: "include" })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data?.name) setCurrentUser(data.name);

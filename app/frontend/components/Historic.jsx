@@ -11,14 +11,13 @@ export default function Historic() {
   const [copiedId, setCopiedId] = useState(null);
 
   // Détermine l'URL de l'API selon l'environnement
-  const API_URL =
-    import.meta.env.VITE_API_URL || ""; // vide = fetch relatif en prod
+
 
   // ------------------- Fetch Proposals -------------------
   const fetchProposals = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/saved_proposals`);
+      const res = await fetch(`/api/saved_proposals`);
       if (!res.ok) throw new Error("Erreur lors de la récupération des propositions");
 
       const data = await res.json();
@@ -68,7 +67,7 @@ export default function Historic() {
   return (
     <div className="min-h-screen bg-gray-50">
 
-     
+
       <div className="w-[70%] mx-auto pb-32">
         <h1 className="text-2xl font-bold mb-6 pt-16">Propositions Sauvegardées</h1>
 

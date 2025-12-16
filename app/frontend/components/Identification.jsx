@@ -29,9 +29,9 @@ const handleSubmit = async () => {
     return alert("Veuillez remplir le nom et le mot de passe");
   }
 
-  const API_URL = import.meta.env.VITE_API_URL;
 
-  const res = await fetch(`${API_URL}/api/login`, {
+
+  const res = await fetch(`/api/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",

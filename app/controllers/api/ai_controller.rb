@@ -36,13 +36,16 @@ end
     lieux_filtered = lieux_filtered.map { |l| l.except("description") }
 
     # ----------------- Récupération des derniers feedbacks -----------------
-    last_feedbacks = Feedback.order(created_at: :desc).limit(10).map do |f|
+    last_feedbacks = Feedback.order(created_at: :desc).map do |f|
       {
         rating: f.rating,
         prompt: f.prompt_text,
         result: f.result_text
       }
     end
+
+        additional_prompt_record = AdditionalPrompt.first
+        additional_prompt = additional_prompt_record&.content || ""
 
     # ------------------ Construction du prompt AI ------------------
     combined_prompt = <<~PROMPT
@@ -54,7 +57,7 @@ end
       Lieux :
       #{lieux_filtered.to_json}
 
-      Historique récent des feedbacks (10 derniers) noté /5 :
+      Historique récent des feedbacks noté /5 :
       #{last_feedbacks.to_json}
 
       Nouvelle demande utilisateur :
@@ -68,6 +71,8 @@ end
       5. Les feedbacks précédents doivent t'aider à améliorer la qualité des suggestions mais ne doivent pas être ta source principal pour prendre une décision.
 
       **FORMAT DE RÉPONSE OBLIGATOIRE** :
+
+      Si le prompt ne mentionne pas de "chefs" ne donne pas de chefs, pareil pour les "lieux".
 
       Met les plus pertinents en premier
       CHEFS :
@@ -86,12 +91,15 @@ end
       RÈGLES IMPORTANTES :
       - Le NOM doit être sur une LIGNE SÉPARÉE, seul, sans texte avant ou après
       - La description commence à la ligne suivante
-      - Sélectionne exactement 3 chefs et 3 lieux
+      - Sélectionne 3 chefs et 3 lieux
       - Si il y a moins de 3 résultats, donne uniquement ceux pertinents
       - Utilise EXACTEMENT les noms tels qu'ils apparaissent dans la base de données
       - Explique brièvement pourquoi chaque chef/lieu est choisi
       - Exprime toi de manière claire et concise sans cité les mots clés dans des ""
       - Indique tous les prix clairement
+
+      Prompt additionnel de l'utilisateur à prendre en compte, si il contredit les instructions précédentes, c'est ce prompt additionnel qui prévaut :
+      #{additional_prompt}
     PROMPT
 
     # ------------------ Appel à Gemini ------------------

@@ -17,17 +17,24 @@ Rails.application.routes.draw do
     get    "/me",     to: "sessions#me"
     delete "/logout", to: "sessions#destroy"
 
+
+
     # Resources
     resources :feedbacks, only: [:index, :create, :destroy]
+
+    resource :additional_prompt, only: [:show, :update]
 
     resources :saved_proposals, only: [:index, :create, :destroy] do
       member do
         get :pdf
       end
     end
+
+
   end
 
   root 'pages#home'
   get 'feedback', to: 'pages#feedback'
   get 'historic', to: 'pages#historic'
+  get 'prompt', to: 'pages#prompt'
 end

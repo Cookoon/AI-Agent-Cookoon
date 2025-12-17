@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (rootNode) {
     createRoot(rootNode).render(
       <UserProvider>
-       
+
         <NavBar />
         <App />
       </UserProvider>
@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (feedbackNode) {
     createRoot(feedbackNode).render(
       <UserProvider>
-       
+
         <NavBar />
         <FeedbackView />
       </UserProvider>
@@ -36,9 +36,21 @@ document.addEventListener('DOMContentLoaded', () => {
     import('../components/Historic.jsx').then(({ default: Historic }) => {
       createRoot(historicNode).render(
         <UserProvider>
-         
+
           <NavBar />
           <Historic />
+        </UserProvider>
+      )
+    })
+  }
+
+  const promptNode = document.getElementById('prompt')
+  if (promptNode) {
+    import('../components/AdditionalPrompt.jsx').then(({ default: AdditionalPromptEditor }) => {
+      createRoot(promptNode).render(
+        <UserProvider>
+          <NavBar />
+        <AdditionalPromptEditor />
         </UserProvider>
       )
     })

@@ -18,6 +18,7 @@ gem "bcrypt", "~> 3.1"
 
 gem 'rack-cors', require: 'rack/cors'
 
+gem 'prawn-table'
 
 
 

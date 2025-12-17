@@ -10,7 +10,15 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_12_16_093729) do
+ActiveRecord::Schema[7.1].define(version: 2025_12_17_101213) do
+  create_table "additional_prompts", force: :cascade do |t|
+    t.text "content", default: "", null: false
+    t.integer "updated_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["updated_by_id"], name: "index_additional_prompts_on_updated_by_id"
+  end
+
   create_table "feedbacks", force: :cascade do |t|
     t.text "prompt_text", null: false
     t.text "result_text", null: false
@@ -35,4 +43,5 @@ ActiveRecord::Schema[7.1].define(version: 2025_12_16_093729) do
     t.datetime "updated_at", null: false
   end
 
+  add_foreign_key "additional_prompts", "users", column: "updated_by_id"
 end

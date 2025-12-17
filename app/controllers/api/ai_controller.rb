@@ -68,7 +68,7 @@ end
       5. Les feedbacks précédents doivent t'aider à améliorer la qualité des suggestions mais ne doivent pas être ta source principal pour prendre une décision.
 
       **FORMAT DE RÉPONSE OBLIGATOIRE** :
-      
+
       Met les plus pertinents en premier
       CHEFS :
       [Nom du Chef 1]
@@ -87,7 +87,7 @@ end
       - Le NOM doit être sur une LIGNE SÉPARÉE, seul, sans texte avant ou après
       - La description commence à la ligne suivante
       - Sélectionne exactement 3 chefs et 3 lieux
-      - Si il y a moins de 3 résultats, complète avec les plus pertinents restants
+      - Si il y a moins de 3 résultats, donne uniquement ceux pertinents
       - Utilise EXACTEMENT les noms tels qu'ils apparaissent dans la base de données
       - Explique brièvement pourquoi chaque chef/lieu est choisi
       - Exprime toi de manière claire et concise sans cité les mots clés dans des ""

@@ -24,51 +24,47 @@ export default function NavBar() {
   return (
     <>
       {/* NAVBAR DESKTOP (verticale) */}
-      <nav className="hidden md:flex fixed top-0 left-0 h-screen w-20 text-white flex-col items-center py-6 space-y-10 bg-[#cabb90]">
-        <a
-          href="/"
-          className="relative group w-12 h-12 mt-16 rounded-lg transition-colors duration-200 hover:bg-white hover:text-[#cabb90] flex items-center justify-center text-2xl"
-          aria-label="Home"
-        >
-          <FontAwesomeIcon icon={faHouse} />
-          <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs font-medium text-white opacity-0 transform scale-95 transition-all duration-150 group-hover:opacity-100 group-hover:scale-100">
-            Home
-          </span>
-        </a>
+<nav className="hidden md:flex fixed top-0 left-0 h-screen w-24 text-white flex-col items-center py-6 px-5 bg-[#cabb90]">
+  {/* Container des liens avec espace vertical */}
+  <div className="flex flex-col items-center space-y-10 mt-16">
+    <a href="/" className="relative group w-12 h-12 rounded-lg transition-colors duration-200 hover:bg-white hover:text-[#cabb90] flex items-center justify-center text-2xl" aria-label="Home">
+      <FontAwesomeIcon icon={faHouse} />
+      <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs font-medium text-white opacity-0 scale-95 transform transition-all duration-150 group-hover:opacity-100 group-hover:scale-100">
+        Home
+      </span>
+    </a>
 
-        <a
-          href="/historic"
-          className="relative group w-12 h-12 rounded-lg transition-colors duration-200 hover:bg-white hover:text-[#cabb90] flex items-center justify-center text-2xl"
-          aria-label="Historique"
-        >
-          <FontAwesomeIcon icon={faClockRotateLeft} />
-          <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs font-medium text-white opacity-0 transform scale-95 transition-all duration-150 group-hover:opacity-100 group-hover:scale-100">
-            Historique
-          </span>
-        </a>
+    <a href="/historic" className="relative group w-12 h-12 rounded-lg transition-colors duration-200 hover:bg-white hover:text-[#cabb90] flex items-center justify-center text-2xl" aria-label="Historique">
+      <FontAwesomeIcon icon={faClockRotateLeft} />
+      <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs font-medium text-white opacity-0 scale-95 transform transition-all duration-150 group-hover:opacity-100 group-hover:scale-100">
+        Historique
+      </span>
+    </a>
 
-        <a
-          href="/feedback"
-          className="relative group w-12 h-12 rounded-lg transition-colors duration-200 hover:bg-white hover:text-[#cabb90] flex items-center justify-center text-2xl"
-          aria-label="Feedback"
-        >
-          <FontAwesomeIcon icon={faComments} />
-          <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs font-medium text-white opacity-0 transform scale-95 transition-all duration-150 group-hover:opacity-100 group-hover:scale-100">
-            Feedback
-          </span>
-        </a>
-                <button
-  onClick={handleLogout}
-  className="relative group w-12 h-12 rounded-lg transition-colors duration-200 hover:bg-white hover:text-[#cabb90] flex items-center justify-center text-2xl mt-auto mb-6"
-  aria-label="Déconnexion"
->
-  <FontAwesomeIcon icon={faRightFromBracket} />
-  <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs font-medium text-white opacity-0 transform scale-95 transition-all duration-150 group-hover:opacity-100 group-hover:scale-100">
-    Déconnexion
-  </span>
-</button>
+    <a href="/feedback" className="relative group w-12 h-12 rounded-lg transition-colors duration-200 hover:bg-white hover:text-[#cabb90] flex items-center justify-center text-2xl" aria-label="Feedback">
+      <FontAwesomeIcon icon={faComments} />
+      <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs font-medium text-white opacity-0 scale-95 transform transition-all duration-150 group-hover:opacity-100 group-hover:scale-100">
+        Feedback
+      </span>
+    </a>
+  </div>
 
-      </nav>
+  {/* Bouton Logout en bas */}
+  <div className="relative group w-12 h-12 mt-auto mb-6">
+    <button
+      onClick={handleLogout}
+      className="w-full h-full rounded-lg flex items-center justify-center text-2xl transition-colors duration-200 hover:bg-white hover:text-[#cabb90]"
+      aria-label="Déconnexion"
+    >
+      <FontAwesomeIcon icon={faRightFromBracket} />
+    </button>
+    <span className="absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs font-medium text-white opacity-0 scale-95 transform transition-all duration-150 group-hover:opacity-100 group-hover:scale-100 pointer-events-none">
+      Déconnexion
+    </span>
+  </div>
+</nav>
+
+
 
       {/* NAVBAR MOBILE (horizontale en bas) */}
       <nav className="md:hidden fixed bottom-0 left-0 w-full bg-[#cabb90] text-white flex justify-around items-center py-3 z-50 shadow-lg">
@@ -100,7 +96,14 @@ export default function NavBar() {
           </div>
         </a>
 
+       <button
+  onClick={handleLogout}
+  className="relative group w-12 h-12 rounded-lg transition-colors duration-200 hover:bg-white hover:text-[#cabb90] flex items-center justify-center text-2xl mt-auto "
+  aria-label="Déconnexion"
+>
+  <FontAwesomeIcon icon={faRightFromBracket} />
 
+</button>
 
       </nav>
     </>

@@ -8,10 +8,12 @@ class AirtableFilter
 
     if criteria[:etoiles].present?
       etoiles_req = criteria[:etoiles].to_i
-      filtered.select! { |c| c["Reconnaissance"].to_s.scan(/\d+/).first.to_i >= etoiles_req }
+      filtered.select! { |c| c["reconnaissance"].to_s.scan(/\d+/).first.to_i >= etoiles_req }
     end
 
     filtered.select! { |c| c["type_of_cooking"].to_s.include?(criteria[:cuisine].to_s) } if criteria[:cuisine].present?
+
+     filtered.select! { |c| c["top_chef"].to_s.include?(criteria[:top_chef].to_s) } if criteria[:top_chef].present?
 
     if criteria[:key_words_chefs].present?
       searched_words = criteria[:key_words_chefs].split(/[\s,;]+/)
@@ -27,6 +29,8 @@ class AirtableFilter
       columns = ["price_dinner_discovery_menu","price_dinner_cocktail_menu","price_minimum_spend","price_minimum_spend_diner"]
       filtered.select! { |c| columns.any? { |col| c[col].to_f <= criteria[:budget].to_f * 1.1 } }
     end
+
+    filtered.select! { |c| c["have_restaurant"].to_s.include?(criteria[:have_restaurant].to_s) } if criteria[:have_restaurant].present?
 
     filtered.select! { |c| c["followers"].to_s.include?(criteria[:followers].to_s) } if criteria[:followers].present?
 
@@ -54,8 +58,16 @@ class AirtableFilter
         end
       end
     end
-
     filtered.select! { |l| l["location"].to_s.include?(criteria[:location].to_s) } if criteria[:location].present?
+
+     filtered.select! { |l| l["open_kitchen"].to_s.include?(criteria[:open_kitchen].to_s) } if criteria[:open_kitchen].present?
+
+      filtered.select! { |l| l["outisde_type"].to_s.include?(criteria[:outisde_type].to_s) } if criteria[:outisde_type].present?
+
+       filtered.select! { |l| l["cheminy"].to_s.include?(criteria[:cheminy].to_s) } if criteria[:cheminy].present?
+
+        filtered.select! { |l| l["amenities"].to_s.include?(criteria[:amenities].to_s) } if criteria[:amenities].present?
+
 
     filtered
   end

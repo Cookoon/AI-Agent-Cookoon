@@ -159,16 +159,25 @@ def build_criteria_from_prompt_auto(user_prompt, all_chefs, all_lieux, params = 
 
   criteria[:cuisine] = params[:cuisine]
 
+  criteria[:top_chef] = params[:top_chef]
+
   criteria[:budget] = params[:budget] || user_prompt_str[/\b(\d+)\s*€/i, 1]
 
+  criteria[:have_restaurant] = params[:have_restaurant]
+
   criteria[:followers] = params[:followers]
+
+
 
   # Mots-clés CHEFS : scan tous les mots clés, OR match, insensible à la casse
   all_chef_keywords = all_chefs.flat_map { |c| c["key_words"].to_s.split(/[\s,;]+/) }.uniq
   matched_chef_words = all_chef_keywords.select do |w|
     user_prompt_str.match?(/\b#{Regexp.escape(w)}\b/i)
   end
+
   criteria[:key_words_chefs] = matched_chef_words.join(", ") unless matched_chef_words.empty?
+
+  
 
   # ---------------- LIEUX ----------------
 
@@ -186,6 +195,14 @@ def build_criteria_from_prompt_auto(user_prompt, all_chefs, all_lieux, params = 
 
   # Localisation
   criteria[:location] = params[:location]
+
+  criteria[:open_kitchen] = params[:open_kitchen]
+
+  criteria[:cheminy] = params[:cheminy]
+
+  criteria[:amenities] = params[:amenities]
+
+  criteria[:outisde_type] = params[:outisde_type]
 
   criteria
 end

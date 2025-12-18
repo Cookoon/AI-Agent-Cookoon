@@ -6,7 +6,6 @@ import { UserProvider, UserContext } from "./UserContext";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowUp } from "@fortawesome/free-solid-svg-icons";
 
-
 function AiAppContent() {
   const { currentUser, setCurrentUser } = useContext(UserContext);
 
@@ -18,6 +17,9 @@ function AiAppContent() {
   const [chefs, setChefs] = useState([]);
   const [lieux, setLieux] = useState([]);
   const [showTitle, setShowTitle] = useState(true);
+
+  // nouvel état pour piloter l'animation d'apparition du bloc résultat
+  const [resultVisible, setResultVisible] = useState(false);
 
   // Vérifie la session au chargement
   useEffect(() => {
@@ -33,6 +35,7 @@ function AiAppContent() {
   const handleSubmit = async () => {
     if (!prompt) return;
     setLoading(true);
+    setResultVisible(false); // masquer le résultat avant la requête (prépare l'animation d'entrée)
     localStorage.setItem("prompt_history", JSON.stringify([prompt]));
 
     try {
@@ -46,6 +49,9 @@ function AiAppContent() {
       const data = await res.json();
       const text = data.resultText || "Aucun résultat";
       setResultText(text);
+
+      // petit délai pour laisser le DOM monter avec l'état initial (opacity-0) puis déclencher la transition vers visible
+      setTimeout(() => setResultVisible(true), 20);
 
       const chefsMatch = text.match(/CHEFS\s*:(.*?)(?=LIEUX\s*:|$)/s);
       const lieuxMatch = text.match(/LIEUX\s*:(.*)/s);
@@ -64,9 +70,10 @@ function AiAppContent() {
       setResultText("Erreur : " + e.message);
       setChefs([]);
       setLieux([]);
+      setTimeout(() => setResultVisible(true), 20);
     } finally {
       setLoading(false);
-      setShowTitle(false);
+      setShowTitle(false); // fait disparaître la nav / titre (animation gérée en CSS/Tailwind)
     }
   };
 
@@ -148,8 +155,47 @@ function AiAppContent() {
     }
   };
 
+  const phrases = [
+    "Que puis-je vous proposer aujourd'hui ?",
+    "Avez-vous besoin d'aide pour un projet ?",
+    "Un nouveau dîner à organiser ?",
+    "Besoin d'idées pour votre prochain événement ?",
+    "Laissez-moi vous inspirer !",
+    "Prêt à découvrir de nouvelles saveurs ?",
+    "Votre assistant culinaire est à votre service.",
+    "Explorons ensemble de nouvelles possibilités !",
+    "Quel type d'expérience recherchez-vous ?",
+    "Je suis là pour vous aider à trouver les meilleures options.",
+    "On prépare quelque chose de spécial aujourd'hui ?",
+    "Envie d'un événement qui sort de l'ordinaire ?",
+    "Je peux vous aider à imaginer le menu parfait.",
+    "Prêt à organiser un moment inoubliable ?",
+  ];
+
+  // État pour la phrase affichée
+  const [phrase, setPhrase] = useState("");
+
+  useEffect(() => {
+    // Choisir une phrase aléatoire au montage du composant
+    const randomIndex = Math.floor(Math.random() * phrases.length);
+    setPhrase(phrases[randomIndex]);
+  }, []);
+
+  // classes d'animations pour la nav (disparition) et le bloc résultat (apparition)
+  const navWrapperClass = `transform transition-all duration-500 ease-in-out ${
+    showTitle ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-6 pointer-events-none"
+  }`;
+  const resultWrapperClass = `bg-white p-5 rounded-lg shadow-md space-y-4 min-h-[70vh] transform transition-all duration-500 ease-out ${
+    resultVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+  }`;
+
   return (
     <div className="content AvenirRegular">
+      {/* NavBar with disappearance animation */}
+      <div className={navWrapperClass}>
+        <NavBar />
+      </div>
+
       <Identification />
 
       <div className="p-4 sm:p-6 min-h-screen bg-gray-100 flex justify-center">
@@ -164,14 +210,16 @@ function AiAppContent() {
               </h2>
 
               <h3 className="mx-auto text-center text-md sm:text-lg text-gray-600 italic tracking-wide leading-tight">
-                Que puis-je vous proposer aujourd'hui ?
+                {phrase}
               </h3>
             </>
           )}
 
           {/* --- Résultat --- */}
+          {/* Le bloc résultat est monté conditionnellement comme avant,
+              mais reçoit maintenant une animation d'apparition via resultVisible */}
           {resultText && (
-            <div className="bg-white p-5 rounded-lg shadow-md space-y-4 min-h-[70vh]">
+            <div className={resultWrapperClass}>
               <h3 className="font-semibold text-lg text-gray-800">Propositions :</h3>
 
               <div className="flex flex-col md:flex-row gap-6">
@@ -204,33 +252,38 @@ function AiAppContent() {
                 </div>
               </div>
 
+              <style>{`
+                div[class*="min-h-[70vh]"] {
+                  transition-duration: 700ms !important;
+                }
+              `}</style>
+
               {/* Feedback / Sauvegarde */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <StarRating />
-                  <button
-                    onClick={submitFeedback}
-                    disabled={!rating}
-                    className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 disabled:opacity-40 transition text-sm"
-                  >
-                    Envoyer
-                  </button>
-                  {feedbackSent && <p className="text-gray-600 text-sm ml-2">Feedback envoyé</p>}
-                </div>
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                              <div className="flex items-center gap-2">
+                                <StarRating />
+                                <button
+                                  onClick={submitFeedback}
+                                  disabled={!rating}
+                                  className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 disabled:opacity-40 transition text-sm"
+                                >
+                                  Envoyer
+                                </button>
+                                {feedbackSent && <p className="text-gray-600 text-sm ml-2">Feedback envoyé</p>}
+                              </div>
 
-               <button
-  onClick={saveProposal}
-  disabled={!resultText}
-  className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-40 transition text-sm"
->
-  {buttonText}
-</button>
+                              <button
+                                onClick={saveProposal}
+                                disabled={!resultText}
+                                className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-40 transition text-sm"
+                              >
+                                {buttonText}
+                              </button>
+                            </div>
+                          </div>
+                        )}
 
-              </div>
-            </div>
-          )}
-
-          {/* Formulaire prompt - centered and slightly wider textarea */}
+                        {/* Formulaire prompt - centered and slightly wider textarea */}
           <div className="flex justify-center">
             {/* increased max width slightly to enlarge the textarea */}
             <div className="w-full max-w-2xl mx-auto">
@@ -268,7 +321,7 @@ function AiAppContent() {
                     onClick={handleSubmit}
                     disabled={loading}
                     className={`
-                      absolute right-2 bottom-3
+                      absolute right-2 bottom-3.5
                       h-9 w-9 sm:h-10 sm:w-10 rounded-full
                       text-white
                       flex items-center justify-center

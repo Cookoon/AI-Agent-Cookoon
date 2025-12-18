@@ -3,6 +3,10 @@ import NavBar from "./NavBar";
 import Identification from "./Identification";
 import { UserProvider, UserContext } from "./UserContext";
 
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowUp } from "@fortawesome/free-solid-svg-icons";
+
+
 function AiAppContent() {
   const { currentUser, setCurrentUser } = useContext(UserContext);
 
@@ -115,11 +119,15 @@ function AiAppContent() {
     </div>
   );
 
+  const [buttonText, setButtonText] = useState("💾 Sauvegarder");
+
   const saveProposal = async () => {
     if (!resultText || !prompt) return;
 
     try {
-      await fetch("/api/saved_proposals", {
+      setButtonText("Sauvegarde...");
+
+      const response = await fetch("/api/saved_proposals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -130,9 +138,13 @@ function AiAppContent() {
         credentials: "include",
       });
 
-      alert("💾 Proposition sauvegardée !");
-    } catch {
-      alert("Erreur lors de la sauvegarde");
+      if (!response.ok) throw new Error("Erreur lors de la sauvegarde");
+
+      setButtonText("Sauvegardé !");
+      setTimeout(() => setButtonText("💾 Sauvegarder"), 3000); // revient au texte initial
+    } catch (error) {
+      console.error("Impossible de sauvegarder :", error);
+      setButtonText("💾 Sauvegarder"); // remet le texte initial en cas d'erreur
     }
   };
 
@@ -206,48 +218,96 @@ function AiAppContent() {
                   {feedbackSent && <p className="text-gray-600 text-sm ml-2">Feedback envoyé</p>}
                 </div>
 
-                <button
-                  onClick={saveProposal}
-                  disabled={!resultText}
-                  className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-40 transition text-sm"
-                >
-                  💾 Sauvegarder
-                </button>
+               <button
+  onClick={saveProposal}
+  disabled={!resultText}
+  className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-40 transition text-sm"
+>
+  {buttonText}
+</button>
+
               </div>
             </div>
           )}
 
-          {/* Formulaire prompt */}
-          <div className="text-area-container">
-            <div className="flex flex-col bg-gray-100 p-3 sm:p-4 rounded-full">
-              <textarea
-                className="w-full px-4 py-2 border rounded-full resize-none focus:border-[#cabb90] focus:outline-none text-sm sm:text-base"
-                placeholder="Entrez votre demande la plus détaillée possible..."
-                value={prompt}
-                style={{ height: "auto", maxHeight: "7.5rem", overflowY: "auto" }}
-                rows={1}
-                onChange={(e) => {
-                  setPrompt(e.target.value);
-                  e.target.style.height = "auto";
-                  const newHeight = Math.min(e.target.scrollHeight, 7.5 * 16) + "px";
-                  e.target.style.height = newHeight;
-                }}
-                onKeyDown={(e) => {
-                  const isSubmit = e.key === "Enter" && (e.metaKey || e.ctrlKey);
-                  if (isSubmit) {
-                    e.preventDefault();
-                    handleSubmit();
-                  }
-                }}
-              />
+          {/* Formulaire prompt - centered and slightly wider textarea */}
+          <div className="flex justify-center">
+            {/* increased max width slightly to enlarge the textarea */}
+            <div className="w-full max-w-2xl mx-auto">
+              <div className="bg-gray-100 p-4 rounded-full">
+                <div className="relative">
+                  <textarea
+                    className="
+                      w-full px-6 py-2 pr-20
+                      border rounded-3xl resize-none
+                      focus:border-[#cabb90] focus:outline-none
+                      text-sm sm:text-base h-14
+                      pb-10
+                    "
+                    placeholder="Entrez votre demande la plus détaillée possible..."
+                    value={prompt}
+                    style={{ maxHeight: "8rem", overflowY: "auto" }}
+                    rows={1}
+                    onChange={(e) => {
+                      setPrompt(e.target.value);
+                      e.target.style.height = "auto";
+                      e.target.style.height =
+                        Math.min(e.target.scrollHeight, 8 * 16) + "px";
+                    }}
+                    onKeyDown={(e) => {
+                      const isSubmit = e.key === "Enter" && (e.metaKey || e.ctrlKey);
+                      if (isSubmit) {
+                        e.preventDefault();
+                        handleSubmit();
+                      }
+                    }}
+                  />
 
-              <button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="mt-2 self-end h-10 sm:h-12 w-24 sm:w-32 bg-[#cabb90] text-white px-3 rounded-full hover:brightness-90 disabled:opacity-40 text-sm sm:text-base"
-              >
-                {loading ? "Chargement..." : "Envoyer"}
-              </button>
+                  {/* Bouton aligné en bas à droite de la zone (reste en bas quand la textarea s'agrandit) */}
+                  <button
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    className={`
+                      absolute right-2 bottom-3
+                      h-9 w-9 sm:h-10 sm:w-10 rounded-full
+                      text-white
+                      flex items-center justify-center
+                      transition-colors hover:brightness-90
+                      ${loading ? "bg-transparent" : "bg-[#cabb90]"}
+                    `}
+                    aria-label="Envoyer la demande"
+                  >
+                    {loading ? (
+                      <svg
+                        className="h-5 w-5 animate-spin text-[#cabb90]"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        role="status"
+                        aria-label="Chargement"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          strokeLinecap="round"
+                          d="M12 2 a10 10 0 0 1 10 10"
+                        />
+                      </svg>
+                    ) : (
+                      <FontAwesomeIcon icon={faArrowUp} />
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

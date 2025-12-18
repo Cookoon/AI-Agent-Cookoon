@@ -4,3 +4,4 @@ class User < ApplicationRecord
   validates :name, presence: true, uniqueness: true
   validates :password, length: { minimum: 4 }, allow_nil: true
 end
+

@@ -69,10 +69,9 @@ end
       3. Ne résume pas le prompt, donne directement la réponse.
       4. Présente les informations clairement et lisiblement.
       5. Les feedbacks précédents doivent t'aider à améliorer la qualité des suggestions mais ne doivent pas être ta source principal pour prendre une décision.
-
+      6. Si aucun résultat pertinent n'est trouvé, répond "Aucun résultat".
+      
       **FORMAT DE RÉPONSE OBLIGATOIRE** :
-
-      Si le prompt ne mentionne pas de "chefs" ne donne pas de chefs, pareil pour les "lieux".
 
       Met les plus pertinents en premier
       CHEFS :
@@ -177,7 +176,7 @@ def build_criteria_from_prompt_auto(user_prompt, all_chefs, all_lieux, params = 
 
   criteria[:key_words_chefs] = matched_chef_words.join(", ") unless matched_chef_words.empty?
 
-  
+
 
   # ---------------- LIEUX ----------------
 

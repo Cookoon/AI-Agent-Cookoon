@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from "react";
 
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faFloppyDisk } from "@fortawesome/free-regular-svg-icons";
+
+
 export default function AdditionalPromptEditor() {
   const [content, setContent] = useState("");
   const [meta, setMeta] = useState(null);
@@ -43,6 +47,24 @@ export default function AdditionalPromptEditor() {
     }
   };
 
+  const justSaved = meta?.updated_at
+    ? Date.now() - new Date(meta.updated_at).getTime() < 3000
+    : false;
+
+  const buttonLabel = saving ? (
+  "Sauvegarde..."
+) : justSaved ? (
+  "Sauvegardé !"
+) : (
+ <>
+<FontAwesomeIcon icon={faFloppyDisk} style={{ marginRight: '0.5rem' }} />
+Sauvegarder
+
+</>
+
+);
+
+
   return (
     <div className="max-w-3xl mx-auto p-6 pt-32">
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -67,7 +89,7 @@ export default function AdditionalPromptEditor() {
               disabled={saving}
               className="inline-flex items-center px-4 py-2 rounded-md text-white bg-[#cabb90] hover:bg-[#b8a676] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
             >
-              {saving ? "Sauvegarde..." : "Sauvegarder"}
+              {buttonLabel}
             </button>
 
             {meta && (

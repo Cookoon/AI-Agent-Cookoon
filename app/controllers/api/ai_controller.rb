@@ -2,7 +2,6 @@ class Api::AiController < ApplicationController
   protect_from_forgery with: :null_session
   skip_before_action :verify_authenticity_token
 
-
   # ------------------- RESET SESSION -------------------
   def reset_session
     session[:user_prompt_session] = []
@@ -15,14 +14,13 @@ class Api::AiController < ApplicationController
     Rails.logger.info "[AI DEBUG] Nouveau prompt : #{user_prompt.inspect}"
 
     # ------------------ Airtable Data ------------------
-  chefs_data = Rails.cache.fetch("chefs_data") do
-  (AirtableService.new("Chefs").all.fetch("records", []) rescue []).map { |c| c["fields"] }
-end
+    chefs_data = Rails.cache.fetch("chefs_data") do
+      (AirtableService.new("Chefs").all.fetch("records", []) rescue []).map { |c| c["fields"] }
+    end
 
-lieux_data = Rails.cache.fetch("lieux_data") do
-  (AirtableService.new("Lieux").all.fetch("records", []) rescue []).map { |l| l["fields"] }
-end
-
+    lieux_data = Rails.cache.fetch("lieux_data") do
+      (AirtableService.new("Lieux").all.fetch("records", []) rescue []).map { |l| l["fields"] }
+    end
 
     # ------------------ Extraction des critères ------------------
     criteria = build_criteria_from_prompt_auto(user_prompt, chefs_data, lieux_data, params)
@@ -44,8 +42,8 @@ end
       }
     end
 
-        additional_prompt_record = AdditionalPrompt.first
-        additional_prompt = additional_prompt_record&.content || ""
+    additional_prompt_record = AdditionalPrompt.first
+    additional_prompt = additional_prompt_record&.content || ""
 
     # ------------------ Construction du prompt AI ------------------
     combined_prompt = <<~PROMPT
@@ -70,7 +68,7 @@ end
       4. Présente les informations clairement et lisiblement.
       5. Les feedbacks précédents doivent t'aider à améliorer la qualité des suggestions mais ne doivent pas être ta source principal pour prendre une décision.
       6. Si aucun résultat pertinent n'est trouvé, répond "Aucun résultat".
-      
+
       **FORMAT DE RÉPONSE OBLIGATOIRE** :
 
       Met les plus pertinents en premier
@@ -101,14 +99,25 @@ end
       #{additional_prompt}
     PROMPT
 
+    # ------------------ Estimation des tokens ------------------
+    prompt_tokens = estimate_tokens(combined_prompt)
+    Rails.logger.info "[AI TOKENS] Prompt tokens estimés : #{prompt_tokens}"
+
     # ------------------ Appel à Gemini ------------------
     result_text = "Aucun résultat"
+    response_tokens = 0
+
     begin
       result_text = GeminiService.new.generate(combined_prompt, max_tokens: 2000)
       result_text = "Aucun résultat" if result_text.blank?
       result_text.gsub!("*", "")
       result_text.gsub!("#", "")
+
+      response_tokens = estimate_tokens(result_text)
+
       Rails.logger.info "[AI DEBUG] Réponse Gemini : #{result_text.inspect}"
+      Rails.logger.info "[AI TOKENS] Réponse tokens estimés : #{response_tokens}"
+      Rails.logger.info "[AI TOKENS] Total tokens estimés : #{prompt_tokens + response_tokens}"
     rescue => e
       Rails.logger.error "[AI ERROR] Gemini : #{e.message}"
     end
@@ -140,71 +149,51 @@ end
 
   private
 
-def build_criteria_from_prompt_auto(user_prompt, all_chefs, all_lieux, params = {})
-  criteria = {}
-  user_prompt_str = user_prompt.to_s.strip
+  def build_criteria_from_prompt_auto(user_prompt, all_chefs, all_lieux, params = {})
+    criteria = {}
+    user_prompt_str = user_prompt.to_s.strip
 
-  # ---------------- CHEFS ----------------
+    # ---------------- CHEFS ----------------
+    all_nationalities = %w[japonais francais italien mexicain portugais colombien]
+    criteria[:nationality] = params[:nationality] || all_nationalities.find do |nat|
+      user_prompt_str.match?(/#{Regexp.escape(nat)}/i)
+    end
 
-  all_nationalities = %w[japonais francais italien mexicain portugais colombien]
-  criteria[:nationality] = params[:nationality] || all_nationalities.find do |nat|
-    user_prompt_str.match?(/#{Regexp.escape(nat)}/i)
+    criteria[:sexe] = params[:sexe] || "féminin" if user_prompt_str =~ /\bune\s+chef(fe)?\b/i
+    criteria[:etoiles] = params[:etoiles] || user_prompt_str[/\b(\d+)\s*etoiles?\b/i, 1]
+    criteria[:cuisine] = params[:cuisine]
+    criteria[:top_chef] = params[:top_chef]
+    criteria[:budget] = params[:budget] || user_prompt_str[/\b(\d+)\s*€/i, 1]
+    criteria[:have_restaurant] = params[:have_restaurant]
+    criteria[:followers] = params[:followers]
+
+    all_chef_keywords = all_chefs.flat_map { |c| c["key_words"].to_s.split(/[\s,;]+/) }.uniq
+    matched_chef_words = all_chef_keywords.select do |w|
+      user_prompt_str.match?(/\b#{Regexp.escape(w)}\b/i)
+    end
+    criteria[:key_words_chefs] = matched_chef_words.join(", ") unless matched_chef_words.empty?
+
+    # ---------------- LIEUX ----------------
+    criteria[:capacite] = params[:capacite] || user_prompt_str[/\b(\d+)\s*personnes?\b/i, 1]
+    criteria[:type_lieu] = params[:type_lieu]
+
+    all_lieu_keywords = all_lieux.flat_map { |l| l["key_words"].to_s.split(/[\s,;]+/) }.uniq
+    matched_lieu_words = all_lieu_keywords.select do |w|
+      user_prompt_str.match?(/\b#{Regexp.escape(w)}\b/i)
+    end
+    criteria[:key_words_lieux] = matched_lieu_words.join(", ") unless matched_lieu_words.empty?
+
+    criteria[:location] = params[:location]
+    criteria[:open_kitchen] = params[:open_kitchen]
+    criteria[:cheminy] = params[:cheminy]
+    criteria[:amenities] = params[:amenities]
+    criteria[:outisde_type] = params[:outisde_type]
+
+    criteria
   end
 
-
-  criteria[:sexe] = params[:sexe] || "féminin" if user_prompt_str =~ /\bune\s+chef(fe)?\b/i
-
-  criteria[:etoiles] = params[:etoiles] || user_prompt_str[/\b(\d+)\s*etoiles?\b/i, 1]
-
-  criteria[:cuisine] = params[:cuisine]
-
-  criteria[:top_chef] = params[:top_chef]
-
-  criteria[:budget] = params[:budget] || user_prompt_str[/\b(\d+)\s*€/i, 1]
-
-  criteria[:have_restaurant] = params[:have_restaurant]
-
-  criteria[:followers] = params[:followers]
-
-
-
-  # Mots-clés CHEFS : scan tous les mots clés, OR match, insensible à la casse
-  all_chef_keywords = all_chefs.flat_map { |c| c["key_words"].to_s.split(/[\s,;]+/) }.uniq
-  matched_chef_words = all_chef_keywords.select do |w|
-    user_prompt_str.match?(/\b#{Regexp.escape(w)}\b/i)
+  def estimate_tokens(text)
+    return 0 if text.blank?
+    (text.length / 4.0).ceil
   end
-
-  criteria[:key_words_chefs] = matched_chef_words.join(", ") unless matched_chef_words.empty?
-
-
-
-  # ---------------- LIEUX ----------------
-
-  criteria[:capacite] = params[:capacite] || user_prompt_str[/\b(\d+)\s*personnes?\b/i, 1]
-
-
-  criteria[:type_lieu] = params[:type_lieu]
-
-  # Mots-clés LIEUX : scan tous les mots clés, OR match, insensible à la casse
-  all_lieu_keywords = all_lieux.flat_map { |l| l["key_words"].to_s.split(/[\s,;]+/) }.uniq
-  matched_lieu_words = all_lieu_keywords.select do |w|
-    user_prompt_str.match?(/\b#{Regexp.escape(w)}\b/i)
-  end
-  criteria[:key_words_lieux] = matched_lieu_words.join(", ") unless matched_lieu_words.empty?
-
-  # Localisation
-  criteria[:location] = params[:location]
-
-  criteria[:open_kitchen] = params[:open_kitchen]
-
-  criteria[:cheminy] = params[:cheminy]
-
-  criteria[:amenities] = params[:amenities]
-
-  criteria[:outisde_type] = params[:outisde_type]
-
-  criteria
-end
-
-
 end

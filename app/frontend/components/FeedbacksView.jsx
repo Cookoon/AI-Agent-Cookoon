@@ -53,7 +53,6 @@ export default function FeedbackView( ) {
   return (
     <>
 
-   
       <div className="p-6 max-w-6xl mx-auto">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-16 pt-16">
           Feedbacks

@@ -171,10 +171,11 @@ class Api::AiController < ApplicationController
     matched_chef_words = all_chef_keywords.select do |w|
       user_prompt_str.match?(/\b#{Regexp.escape(w)}\b/i)
     end
-    criteria[:key_words_chefs] = matched_chef_words.join(", ") unless matched_chef_words.empty?
-
     # ---------------- LIEUX ----------------
+    
     criteria[:capacite] = params[:capacite] || user_prompt_str[/\b(\d+)\s*personnes?\b/i, 1]
+
+    criteria[:key_words_chefs] = matched_chef_words.join(", ") unless matched_chef_words.empty?
     criteria[:type_lieu] = params[:type_lieu]
 
     all_lieu_keywords = all_lieux.flat_map { |l| l["key_words"].to_s.split(/[\s,;]+/) }.uniq

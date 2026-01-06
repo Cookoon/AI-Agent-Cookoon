@@ -90,9 +90,9 @@ class Api::AiController < ApplicationController
       RÈGLES IMPORTANTES :
       - Prend en compte en priorité le BUDGET et la CAPACITÉ
       - Le price_mimimum_spend et les price_fixed est le prix total minimum à payer pour réserver le chef ou le lieu pour la totalité des invités, pas par personnne.
-          Si il n'y a pas de prix par personne, calcule le prix total divisé par le nombre de personnes.
+      - Si il n'y a pas de prix par personne, calcule le prix total divisé par le nombre de personnes.
       - Le budget doit inclure le prix total pour toutes les personnes pour le chef et le lieu
-
+      
       - Sélectionne 3 chefs et 3 lieux
       - Si il y a moins de 3 résultats, donne uniquement ceux pertinents
 

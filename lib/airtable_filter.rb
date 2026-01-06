@@ -3,6 +3,7 @@ class AirtableFilter
   def self.filter_chefs(chefs, criteria)
     filtered = chefs.dup
 
+
     filtered.select! { |c| c["nationality"].to_s.include?(criteria[:nationality].to_s) } if criteria[:nationality].present?
     filtered.select! { |c| c["sexe"].to_s.include?(criteria[:sexe].to_s) } if criteria[:sexe].present?
 
@@ -40,6 +41,10 @@ class AirtableFilter
   # ----------------- LIEUX -----------------
   def self.filter_lieux(lieux, criteria)
     filtered = lieux.dup
+        if criteria[:price].present?
+      columns = ["price_fixed Lunch","price_by_guest lunch","price_fixed_dinner","price_by_guest diner"]
+      filtered.select! { |c| columns.any? { |col| c[col].to_f <= criteria[:budget].to_f * 1.1 } }
+    end
 
     filtered.select! { |l| l["decor_style"].to_s.include?(criteria[:type_lieu].to_s) } if criteria[:type_lieu].present?
     filtered.select! { |l| l["price_fixed_lunch"].to_f <= criteria[:budget].to_f * 1.1 } if criteria[:budget].present?

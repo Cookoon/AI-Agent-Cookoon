@@ -72,7 +72,9 @@ class Api::AiController < ApplicationController
       **FORMAT DE RÉPONSE OBLIGATOIRE** :
 
       Met les plus pertinents en premier
+
       CHEFS :
+
       [Nom du Chef 1]
       [Description]
       Prix : XX€ par personne
@@ -86,10 +88,16 @@ class Api::AiController < ApplicationController
       Prix total pour [N] personnes : XXX€
 
       RÈGLES IMPORTANTES :
-      - Le NOM doit être sur une LIGNE SÉPARÉE, seul, sans texte avant ou après
-      - La description commence à la ligne suivante
+      - Prend en compte en priorité le BUDGET et la CAPACITÉ
+      - Le price_mimimum_spend et les price_fixed est le prix total minimum à payer pour réserver le chef ou le lieu pour la totalité des invités, pas par personnne.
+          Si il n'y a pas de prix par personne, calcule le prix total divisé par le nombre de personnes.
+      - Le budget doit inclure le prix total pour toutes les personnes pour le chef et le lieu
+
       - Sélectionne 3 chefs et 3 lieux
       - Si il y a moins de 3 résultats, donne uniquement ceux pertinents
+
+      - Le NOM doit être sur une LIGNE SÉPARÉE, seul, sans texte avant ou après
+      - La description commence à la ligne suivante
       - Utilise EXACTEMENT les noms tels qu'ils apparaissent dans la base de données
       - Explique brièvement pourquoi chaque chef/lieu est choisi
       - Exprime toi de manière claire et concise sans cité les mots clés dans des ""
@@ -149,49 +157,86 @@ class Api::AiController < ApplicationController
 
   private
 
-  def build_criteria_from_prompt_auto(user_prompt, all_chefs, all_lieux, params = {})
-    criteria = {}
-    user_prompt_str = user_prompt.to_s.strip
+ def build_criteria_from_prompt_auto(user_prompt, all_chefs, all_lieux, params = {})
+  {
+    chefs: build_chef_criteria_from_prompt(user_prompt, all_chefs, params),
+    lieux: build_lieu_criteria_from_prompt(user_prompt, all_lieux, params)
+  }
+end
 
-    # ---------------- CHEFS ----------------
-    all_nationalities = %w[japonais francais italien mexicain portugais colombien]
-    criteria[:nationality] = params[:nationality] || all_nationalities.find do |nat|
-      user_prompt_str.match?(/#{Regexp.escape(nat)}/i)
-    end
+def build_chef_criteria_from_prompt(user_prompt, all_chefs, params = {})
+  criteria = {}
+  user_prompt_str = user_prompt.to_s.strip
 
-    criteria[:sexe] = params[:sexe] || "féminin" if user_prompt_str =~ /\bune\s+chef(fe)?\b/i
-    criteria[:etoiles] = params[:etoiles] || user_prompt_str[/\b(\d+)\s*etoiles?\b/i, 1]
-    criteria[:cuisine] = params[:cuisine]
-    criteria[:top_chef] = params[:top_chef]
-    criteria[:budget] = params[:budget] || user_prompt_str[/\b(\d+)\s*€/i, 1]
-    criteria[:have_restaurant] = params[:have_restaurant]
-    criteria[:followers] = params[:followers]
+  # Budget
+  criteria[:budget] = params[:budget] || user_prompt_str[/\b(\d+)\s*€/i, 1]
 
-    all_chef_keywords = all_chefs.flat_map { |c| c["key_words"].to_s.split(/[\s,;]+/) }.uniq
-    matched_chef_words = all_chef_keywords.select do |w|
-      user_prompt_str.match?(/\b#{Regexp.escape(w)}\b/i)
-    end
-    # ---------------- LIEUX ----------------
-    
-    criteria[:capacite] = params[:capacite] || user_prompt_str[/\b(\d+)\s*personnes?\b/i, 1]
-
-    criteria[:key_words_chefs] = matched_chef_words.join(", ") unless matched_chef_words.empty?
-    criteria[:type_lieu] = params[:type_lieu]
-
-    all_lieu_keywords = all_lieux.flat_map { |l| l["key_words"].to_s.split(/[\s,;]+/) }.uniq
-    matched_lieu_words = all_lieu_keywords.select do |w|
-      user_prompt_str.match?(/\b#{Regexp.escape(w)}\b/i)
-    end
-    criteria[:key_words_lieux] = matched_lieu_words.join(", ") unless matched_lieu_words.empty?
-
-    criteria[:location] = params[:location]
-    criteria[:open_kitchen] = params[:open_kitchen]
-    criteria[:cheminy] = params[:cheminy]
-    criteria[:amenities] = params[:amenities]
-    criteria[:outisde_type] = params[:outisde_type]
-
-    criteria
+  # Nationalité
+  all_nationalities = %w[japonais francais italien mexicain portugais colombien]
+  criteria[:nationality] = params[:nationality] || all_nationalities.find do |nat|
+    user_prompt_str.match?(/#{Regexp.escape(nat)}/i)
   end
+
+  # Sexe
+  criteria[:sexe] = params[:sexe] || "féminin" if user_prompt_str =~ /\bune\s+chef(fe)?\b/i
+
+  # Étoiles
+  criteria[:etoiles] = params[:etoiles] || user_prompt_str[/\b(\d+)\s*etoiles?\b/i, 1]
+
+  # Attributs directs
+  criteria[:cuisine] = params[:cuisine]
+  criteria[:top_chef] = params[:top_chef]
+  criteria[:have_restaurant] = params[:have_restaurant]
+  criteria[:followers] = params[:followers]
+
+  # Mots-clés chefs
+  all_chef_keywords = all_chefs
+    .flat_map { |c| c["key_words"].to_s.split(/[\s,;]+/) }
+    .uniq
+
+  matched_chef_words = all_chef_keywords.select do |w|
+    user_prompt_str.match?(/\b#{Regexp.escape(w)}\b/i)
+  end
+
+  criteria[:key_words_chefs] = matched_chef_words.join(", ") unless matched_chef_words.empty?
+
+  criteria
+end
+
+def build_lieu_criteria_from_prompt(user_prompt, all_lieux, params = {})
+  criteria = {}
+  user_prompt_str = user_prompt.to_s.strip
+
+  # Prix
+  criteria[:price] = params[:price] || user_prompt_str[/\b(\d+)\s*€/i, 1]
+
+  # Capacité
+  criteria[:capacite] = params[:capacite] || user_prompt_str[/\b(\d+)\s*personnes?\b/i, 1]
+
+  # Type de lieu
+  criteria[:type_lieu] = params[:type_lieu]
+
+  # Mots-clés lieux
+  all_lieu_keywords = all_lieux
+    .flat_map { |l| l["key_words"].to_s.split(/[\s,;]+/) }
+    .uniq
+
+  matched_lieu_words = all_lieu_keywords.select do |w|
+    user_prompt_str.match?(/\b#{Regexp.escape(w)}\b/i)
+  end
+
+  criteria[:key_words_lieux] = matched_lieu_words.join(", ") unless matched_lieu_words.empty?
+
+  # Attributs directs
+  criteria[:location] = params[:location]
+  criteria[:open_kitchen] = params[:open_kitchen]
+  criteria[:cheminy] = params[:cheminy]
+  criteria[:amenities] = params[:amenities]
+  criteria[:outisde_type] = params[:outisde_type]
+
+  criteria
+end
+
 
   def estimate_tokens(text)
     return 0 if text.blank?

@@ -25,9 +25,13 @@ class Api::AiController < ApplicationController
     # ------------------ Extraction des critères ------------------
     criteria = build_criteria_from_prompt_auto(user_prompt, chefs_data, lieux_data, params)
 
-    # ------------------ Filtrage ------------------
-    chefs_filtered = AirtableFilter.filter_chefs(chefs_data, criteria)
-    lieux_filtered = AirtableFilter.filter_lieux(lieux_data, criteria)
+  # ------------------ Filtrage ------------------
+  # build_criteria_from_prompt_auto returns a hash with :chefs and :lieux
+  chefs_criteria = criteria[:chefs] || {}
+  lieux_criteria = criteria[:lieux] || {}
+
+  chefs_filtered = AirtableFilter.filter_chefs(chefs_data, chefs_criteria)
+  lieux_filtered = AirtableFilter.filter_lieux(lieux_data, lieux_criteria)
 
     # ------------------ Supprimer colonnes inutiles ------------------
     chefs_filtered = chefs_filtered.map { |c| c.except("description") }
@@ -47,6 +51,7 @@ class Api::AiController < ApplicationController
 
     # ------------------ Construction du prompt AI ------------------
     combined_prompt = <<~PROMPT
+
       Voici les données disponibles :
 
       Chefs :
@@ -89,10 +94,10 @@ class Api::AiController < ApplicationController
 
       RÈGLES IMPORTANTES :
       - Prend en compte en priorité le BUDGET et la CAPACITÉ
+      - Le budget chaque combinaison de chef et lieu ne doit pas dépasser le budget total
+      - Le price du lieu ne doit pas dépasser les 75% budget total donné
       - Le price_mimimum_spend et les price_fixed est le prix total minimum à payer pour réserver le chef ou le lieu pour la totalité des invités, pas par personnne.
       - Si il n'y a pas de prix par personne, calcule le prix total divisé par le nombre de personnes.
-      - Le budget doit inclure le prix total pour toutes les personnes pour le chef et le lieu
-      
       - Sélectionne 3 chefs et 3 lieux
       - Si il y a moins de 3 résultats, donne uniquement ceux pertinents
 
@@ -181,7 +186,15 @@ def build_chef_criteria_from_prompt(user_prompt, all_chefs, params = {})
   criteria[:sexe] = params[:sexe] || "féminin" if user_prompt_str =~ /\bune\s+chef(fe)?\b/i
 
   # Étoiles
-  criteria[:etoiles] = params[:etoiles] || user_prompt_str[/\b(\d+)\s*etoiles?\b/i, 1]
+criteria[:etoile] =
+  params[:etoile] ||
+  user_prompt_str[/\b(\d+)\s*é?toile?s?\b/i, 1] ||
+  (
+    user_prompt_str.match?(/\bnon\s+étoilé(e|s)?\b/i) ? 0 :
+    user_prompt_str.match?(/\bétoilé(e|s)?\b/i) ? 1 :
+    nil
+  )
+
 
   # Attributs directs
   criteria[:cuisine] = params[:cuisine]

@@ -23,10 +23,11 @@ class Api::AiController < ApplicationController
     end
 
 
-  ban_list = {
-    chefs: params[:chefs] || [],
-    lieux: params[:lieux] || []
-  }
+  # Accept ban lists from frontend: prefer ban_chefs/ban_lieux, fallback to legacy keys or nested ai payload
+  ban_chefs = params[:ban_chefs] || params['ban_chefs'] || params[:chefs] || params['chefs'] || (params[:ai] && (params[:ai][:ban_chefs] || params[:ai]['ban_chefs'])) || []
+  ban_lieux = params[:ban_lieux] || params['ban_lieux'] || params[:lieux] || params['lieux'] || (params[:ai] && (params[:ai][:ban_lieux] || params[:ai]['ban_lieux'])) || []
+
+  ban_list = { chefs: Array(ban_chefs), lieux: Array(ban_lieux) }
 
     # ------------------ Extraction des critères ------------------
     criteria = build_criteria_from_prompt_auto(user_prompt, chefs_data, lieux_data, params)
@@ -35,6 +36,10 @@ class Api::AiController < ApplicationController
   # build_criteria_from_prompt_auto returns a hash with :chefs and :lieux
   chefs_criteria = criteria[:chefs] || {}
   lieux_criteria = criteria[:lieux] || {}
+
+  # attach ban lists to criteria so filters can remove banned entries early
+  chefs_criteria[:ban_chefs] = ban_list[:chefs]
+  lieux_criteria[:ban_lieux] = ban_list[:lieux]
 
   chefs_filtered = AirtableFilter.filter_chefs(chefs_data, chefs_criteria)
   lieux_filtered = AirtableFilter.filter_lieux(lieux_data, lieux_criteria)
@@ -77,11 +82,11 @@ class Api::AiController < ApplicationController
 
       Instructions pour la réponse :
       1. Sélectionne les éléments les plus pertinents en fonction de tous les mot clés dans la base de donnée.
-      2. Respecte le budget si fourni (+10% tolérance max).
+      2. Respecte le budget si fourni, il ne doit pas être dépassé.
       3. Ne résume pas le prompt, donne directement la réponse.
       4. Présente les informations clairement et lisiblement.
       5. Les feedbacks précédents doivent t'aider à améliorer la qualité des suggestions mais ne doivent pas être ta source principal pour prendre une décision.
-      6. Si aucun résultat pertinent n'est trouvé, répond "Aucun résultat".
+      6. Soit permissif il me faut toujours 3 résultats par catégorie, même si ce n'est pas totalement pertinent.
 
       **FORMAT DE RÉPONSE OBLIGATOIRE** :
 
@@ -130,7 +135,7 @@ class Api::AiController < ApplicationController
     response_tokens = 0
 
     begin
-      result_text = GeminiService.new.generate(combined_prompt, max_tokens: 2000)
+      result_text = GeminiService.new.generate(combined_prompt, max_tokens: 15000)
       result_text = "Aucun résultat" if result_text.blank?
       result_text.gsub!("*", "")
       result_text.gsub!("#", "")

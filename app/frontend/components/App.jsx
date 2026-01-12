@@ -32,17 +32,28 @@ function AiAppContent() {
   // Reset historique au refresh
   useEffect(() => localStorage.removeItem("prompt_history"), []);
 
+  const sanitize = (arr) =>
+    Array.isArray(arr)
+      ? [...new Set(arr.map((s) => (s || "").toString().trim()).filter(Boolean))]
+      : [];
+
   const handleSubmit = async () => {
     if (!prompt) return;
     setLoading(true);
     setResultVisible(false); // masquer le résultat avant la requête (prépare l'animation d'entrée)
     localStorage.setItem("prompt_history", JSON.stringify([prompt]));
 
+    const payload = {
+      prompt,
+      ban_chefs: sanitize(selectedLinesChefs),
+      ban_lieux: sanitize(selectedLinesLieux),
+    };
+
     try {
       const res = await fetch("/api/ai/recommend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify(payload),
         credentials: "include",
       });
 
@@ -443,7 +454,6 @@ const handleSendBanList = async () => {
                   <button
                     onClick={() => {
                         handleSubmit();
-                        handleSendBanList();
                       }}
                     disabled={loading}
                     className={`

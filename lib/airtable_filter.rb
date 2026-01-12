@@ -6,6 +6,7 @@ class AirtableFilter
 
   CHEF_PRICE_COLUMNS = %w[
     price_dinner_discovery_menu
+    price_lunch_discovery_menu
     price_dinner_cocktail_menu
     price_minimum_spend
     price_minimum_spend_diner
@@ -29,7 +30,15 @@ class AirtableFilter
 
   # ----------------- HELPERS -----------------
   def self.normalize(str)
-    str.to_s.downcase.strip
+    # remove accents for safer matching if I18n is available
+    s = str.to_s
+    if defined?(I18n) && I18n.respond_to?(:transliterate)
+      s = I18n.transliterate(s)
+    else
+      # basic ASCII fallback: remove common accents
+      s = s.tr('ÀÁÂÃÄÅàáâãäåÈÉÊËèéêëÌÍÎÏìíîïÒÓÔÕÖØòóôõöøÙÚÛÜùúûüÇçÑñ', 'AAAAAAaaaaaaEEEEeeeeIIIIiiiiOOOOOOooooooUUUUuuuuCcNn')
+    end
+    s.downcase.strip
   end
 
   def self.keyword_score(item_keywords, searched_words)
@@ -43,6 +52,17 @@ def self.filter_chefs(chefs, criteria)
   filtered = chefs.dup
   Rails.logger.info("[AirtableFilter][CHEFS] initial count=#{filtered.size}") if defined?(Rails)
 
+  # ----------------- BAN LIST -----------------
+  if criteria[:ban_chefs].present?
+    bans = Array(criteria[:ban_chefs]).map { |b| normalize(b) }
+    before_ban = filtered.size
+    filtered.reject! do |c|
+      name = normalize(c['name'] || c['id'])
+      bans.any? { |b| name.match?(/\b#{Regexp.escape(b)}\b/) }
+    end
+    Rails.logger.info("[AirtableFilter][CHEFS][BAN] removed=#{before_ban - filtered.size} remaining=#{filtered.size}") if defined?(Rails)
+  end
+
   # ----------------- FILTRE BUDGET -----------------
   budget_value = (criteria[:budget] || criteria[:price]).to_f
   if budget_value.positive?
@@ -50,9 +70,29 @@ def self.filter_chefs(chefs, criteria)
     Rails.logger.info("[AirtableFilter][CHEFS][BUDGET] budget_value=#{budget_value} max_chef_budget=#{max_chef_budget}") if defined?(Rails)
 
     before_count = filtered.size
+    candidates_before = filtered.dup
     filtered.select! do |c|
       CHEF_PRICE_COLUMNS.any? { |col| c[col].to_f.positive? && c[col].to_f <= max_chef_budget }
     end
+
+    # If strict budget removes all candidates, try a relaxed budget threshold (50% more)
+    if filtered.empty?
+      relaxed_budget = max_chef_budget * 1.5
+      Rails.logger.warn("[AirtableFilter][CHEFS][BUDGET] strict filter removed all candidates, trying relaxed_budget=#{relaxed_budget}") if defined?(Rails)
+      relaxed = candidates_before.select do |c|
+        CHEF_PRICE_COLUMNS.any? { |col| c[col].to_f.positive? && c[col].to_f <= relaxed_budget }
+      end
+
+      if relaxed.any?
+        filtered = relaxed
+        Rails.logger.info("[AirtableFilter][CHEFS][BUDGET] relaxed match count=#{filtered.size}") if defined?(Rails)
+      else
+        # If still none, restore original list but log a warning — budget filter effectively skipped
+        filtered = candidates_before
+        Rails.logger.warn("[AirtableFilter][CHEFS][BUDGET] no chefs match budget even after relaxation; skipping budget filter") if defined?(Rails)
+      end
+    end
+
     Rails.logger.info("[AirtableFilter][CHEFS][BUDGET] before=#{before_count} after=#{filtered.size}") if defined?(Rails)
   end
 
@@ -142,6 +182,17 @@ end
   def self.filter_lieux(lieux, criteria)
     filtered = lieux.dup
 
+    # ----------------- BAN LIST -----------------
+    if criteria[:ban_lieux].present?
+      bans = Array(criteria[:ban_lieux]).map { |b| normalize(b) }
+      before_ban = filtered.size
+      filtered.reject! do |l|
+        name = normalize(l['name'] || l['id'])
+        bans.any? { |b| name.match?(/\b#{Regexp.escape(b)}\b/) }
+      end
+      Rails.logger.info("[AirtableFilter][LIEUX][BAN] removed=#{before_ban - filtered.size} remaining=#{filtered.size}") if defined?(Rails)
+    end
+
     # ----------------- FILTRE BUDGET STRICT -----------------
     # accept either :budget or :price and either :capacite or :capacity
     lieu_budget = (criteria[:price] || criteria[:budget]).to_f
@@ -151,6 +202,7 @@ end
       max_total_budget = lieu_budget * lieu_capacity * LIEU_PERCENTAGE_OF_BUDGET
       Rails.logger.info("[AirtableFilter] Lieu budget=#{lieu_budget} capacity=#{lieu_capacity} max_total_budget=#{max_total_budget}") if defined?(Rails)
       before_count = filtered.size
+      candidates_before = filtered.dup
       filtered.select! do |l|
         LIEU_PRICE_COLUMNS.any? do |col|
           price = l[col].to_f
@@ -160,6 +212,29 @@ end
           price <= max_total_budget
         end
       end
+
+      # Relax if none matched
+      if filtered.empty?
+        relaxed_total = max_total_budget * 1.5
+        Rails.logger.warn("[AirtableFilter] Lieux strict budget removed all candidates, trying relaxed_total=#{relaxed_total}") if defined?(Rails)
+        relaxed = candidates_before.select do |l|
+          LIEU_PRICE_COLUMNS.any? do |col|
+            price = l[col].to_f
+            next false if price <= 0
+            price *= lieu_capacity if col.to_s.downcase.include?("guest") || col.to_s.downcase.include?("by_guest")
+            price <= relaxed_total
+          end
+        end
+
+        if relaxed.any?
+          filtered = relaxed
+          Rails.logger.info("[AirtableFilter] Lieux relaxed match count=#{filtered.size}") if defined?(Rails)
+        else
+          filtered = candidates_before
+          Rails.logger.warn("[AirtableFilter] Lieux: no matches after relaxation; skipping budget filter") if defined?(Rails)
+        end
+      end
+
       after_count = filtered.size
       Rails.logger.info("[AirtableFilter] Lieux filtered by budget: before=#{before_count} after=#{after_count}") if defined?(Rails)
     end

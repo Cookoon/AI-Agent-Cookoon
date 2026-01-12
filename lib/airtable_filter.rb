@@ -20,11 +20,11 @@ class AirtableFilter
   ]
 
   LIEU_CAPACITY_COLUMNS = %w[
-    outside_capacity_sit
-    outside_capacity_standing
+    dehors_capacity_assis
+    dehors_capacity_debout
     outside_with_rent
-    inside_capacity_sit
-    inside_capacity_standing
+    intérieur_capacity_assis
+    intérieur_capacity_debout
     inside_with_rent
   ]
 

@@ -3,7 +3,7 @@ require "uri"
 require "json"
 
 class GeminiService
-  PRIMARY_MODEL = "gemini-2.5-flash"
+  PRIMARY_MODEL = "gemini-3-flash-preview"
   FALLBACK_MODEL = "gemini-2.5-flash-lite"
 
   BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"

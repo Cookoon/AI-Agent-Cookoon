@@ -22,6 +22,12 @@ class Api::AiController < ApplicationController
       (AirtableService.new("Lieux").all.fetch("records", []) rescue []).map { |l| l["fields"] }
     end
 
+
+  ban_list = {
+    chefs: params[:chefs] || [],
+    lieux: params[:lieux] || []
+  }
+
     # ------------------ Extraction des critères ------------------
     criteria = build_criteria_from_prompt_auto(user_prompt, chefs_data, lieux_data, params)
 
@@ -49,10 +55,13 @@ class Api::AiController < ApplicationController
     additional_prompt_record = AdditionalPrompt.first
     additional_prompt = additional_prompt_record&.content || ""
 
+
     # ------------------ Construction du prompt AI ------------------
     combined_prompt = <<~PROMPT
 
       Voici les données disponibles :
+
+      #{ban_list.to_json} est la liste des chefs et lieux à exclure
 
       Chefs :
       #{chefs_filtered.to_json}

@@ -17,7 +17,7 @@ Rails.application.routes.draw do
     get    "/me",     to: "sessions#me"
     delete "/logout", to: "sessions#destroy"
 
-
+      post "ai/ban_list", to: "ai#ban_list"
 
     # Resources
     resources :feedbacks, only: [:index, :create, :destroy]
@@ -29,6 +29,10 @@ Rails.application.routes.draw do
         get :pdf
       end
     end
+
+
+
+
 
 
   end

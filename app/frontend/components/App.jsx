@@ -185,9 +185,55 @@ function AiAppContent() {
   const navWrapperClass = `transform transition-all duration-500 ease-in-out ${
     showTitle ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-6 pointer-events-none"
   }`;
-  const resultWrapperClass = `bg-white p-5 rounded-lg shadow-md space-y-4 min-h-[70vh] transform transition-all duration-500 ease-out ${
+  const resultWrapperClass = `  bg-white p-5 rounded-lg shadow-md space-y-4 w-[80vw] min-h-[70vh]
+            -translate-x-16
+            transform transition-all duration-500 ease-out
+  ${
     resultVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
   }`;
+
+    const [selectedLinesChefs, setSelectedLinesChefs] = useState([]);
+
+  const handleAddFirstLineChefs = (line) => {
+    setSelectedLinesChefs((prev) => [...prev, line]);
+  };
+
+  const [selectedLinesLieux, setSelectedLinesLieux] = useState([]);
+
+  const handleSelectFirstLineLieux = (lines) => {
+    if (lines.length > 0) {
+
+      setSelectedLinesLieux((prev) => [...prev, lines[0]]);
+    }
+  };
+
+const handleSendBanList = async () => {
+  if (selectedLinesChefs.length === 0 && selectedLinesLieux.length === 0) {
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/ai/recommend", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ chefs: selectedLinesChefs, lieux: selectedLinesLieux, prompt: "..." }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erreur: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("Réponse backend :", data);
+
+  } catch (error) {
+    console.error("Erreur lors de l'envoi au backend :", error);
+
+  }
+};
+
+
+
 
   return (
     <div className="content AvenirRegular">
@@ -226,29 +272,106 @@ function AiAppContent() {
                 {/* CHEFS */}
                 <div className="md:w-1/2 bg-gray-50 p-3 rounded-md overflow-y-auto max-h-[70vh]">
                   <h4 className="font-semibold mb-2 text-[#cabb90]">Chefs</h4>
-                  {chefs.length > 0
-                    ? chefs.map((c, i) => (
-                        <div key={i} className="mb-3 p-2 border border-[#cabb90] rounded">
-                          {c.map((line, idx) => (
-                            <p key={idx}>{line}</p>
-                          ))}
-                        </div>
-                      ))
-                    : "Aucun chef trouvé"}
+                  <div>
+      {/* Liste des chefs */}
+                {chefs.length > 0 ? (
+                  chefs.map((c, i) => (
+                    <div key={i} className="mb-3 p-2 border border-[#cabb90] rounded">
+                      {c.map((line, idx) => (
+                        <p key={idx}>{line}</p>
+                      ))}
+                      {/* Bouton qui ajoute la première ligne */}
+                      {c.length > 0 && (
+                        <button
+                          onClick={() => handleAddFirstLineChefs(c[0])}
+                          className="mt-2 px-3 py-1 bg-[#cabb90] rounded text-white"
+                        >
+                          Retirer
+                        </button>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  "Aucun chef trouvé"
+                )}
+
+                {/* Affichage du tableau des lignes sélectionnées */}
+                {selectedLinesChefs.length > 0 && (
+                  <div className="mt-5">
+                     <h3>
+      {selectedLinesChefs.length === 1 ? "Chef retiré :" : "Chefs retirés :"}
+                    </h3>
+                    <ul className="list-disc list-inside">
+                       {selectedLinesChefs.map((line, idx) => (
+                        <li
+                          key={idx}
+                          className="flex items-center justify-between"
+                        >
+                          <span>{line}</span>
+
+                          <button
+                            onClick={() =>
+                              setSelectedLinesChefs(prev =>
+                                prev.filter((_, i) => i !== idx)
+                              )
+                            }
+                            className="ml-3 text-sm text-red-500 hover:text-red-700 transition"
+                            aria-label="Retirer ce chef"
+                          >
+                            ✕
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                  </div>
                 </div>
 
                 {/* LIEUX */}
                 <div className="md:w-1/2 bg-gray-50 p-3 rounded-md overflow-y-auto max-h-[70vh]">
                   <h4 className="font-semibold mb-2 text-[#cabb90]">Lieux</h4>
-                  {lieux.length > 0
-                    ? lieux.map((l, i) => (
+                  {lieux.length > 0 ? (
+                      lieux.map((l, i) => (
                         <div key={i} className="mb-3 p-2 border border-[#cabb90] rounded">
                           {l.map((line, idx) => (
                             <p key={idx}>{line}</p>
                           ))}
+                          <button
+                            onClick={() => handleSelectFirstLineLieux(l)}
+                            className="mt-2 px-3 py-1 bg-[#cabb90] rounded text-white"
+                          >
+                           Retirer
+                          </button>
                         </div>
                       ))
-                    : "Aucun lieu trouvé"}
+                    ) : (
+                      "Aucun lieu trouvé"
+                    )}
+
+                    {selectedLinesLieux.length > 0 && (
+                      <div className="mt-4">
+                        {selectedLinesLieux.length === 1 ? "Lieu retiré :" : "Lieux retirés :"}
+                        <ul className="list-disc pl-5">
+                          {selectedLinesLieux.map((line, idx) => (
+                            <li key={idx} className="flex items-center justify-between">
+                              <span>{line}</span>
+
+                            <button
+                              onClick={() =>
+                                setSelectedLinesLieux(prev =>
+                                  prev.filter((_, i) => i !== idx)
+                                )
+                              }
+                              className="ml-3 text-sm text-red-500 hover:text-red-700"
+                            >
+      ✕
+    </button>
+  </li>
+))}
+                        </ul>
+                      </div>
+                    )}
                 </div>
               </div>
 
@@ -318,7 +441,10 @@ function AiAppContent() {
 
                   {/* Bouton aligné en bas à droite de la zone (reste en bas quand la textarea s'agrandit) */}
                   <button
-                    onClick={handleSubmit}
+                    onClick={() => {
+                        handleSubmit();
+                        handleSendBanList();
+                      }}
                     disabled={loading}
                     className={`
                       absolute right-2 bottom-3.5

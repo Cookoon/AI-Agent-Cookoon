@@ -529,6 +529,11 @@ const handleSendBanList = async () => {
             <li class="pl-1">
               Indiquez le budget par personne en €
             </li>
+            <li class="pl-1">
+              Exemple de prompt : <span class="italic">Je souhaite un chef non étoilé français proposant une cuisine bistronomique raffinée,
+                dans un lieu chaleureux avec des œuvres d’art, situé dans le 16ème arrondissement de Paris,
+                pour un dîner assis de 8 personnes, avec un budget de 400 € par personne.</span>
+              </li>
           </ol>
         </div>
         </section>

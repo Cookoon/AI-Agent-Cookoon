@@ -256,15 +256,7 @@ end
         score += keyword_score(keywords, searched) * 2
       end
 
-      # Type / decor
-      if criteria[:type_lieu].present?
-        decor_values = case l["decor_style"]
-                       when Array then l["decor_style"]
-                       when String then [l["decor_style"]]
-                       else []
-                       end
-        score += 3 if decor_values.any? { |d| normalize(d).include?(normalize(criteria[:type_lieu])) }
-      end
+    
 
       # Location
       score += 1 if criteria[:location].present? && normalize(l["location"]).include?(normalize(criteria[:location]))

@@ -419,6 +419,7 @@ const handleSendBanList = async () => {
 
                         {/* Formulaire prompt - centered and slightly wider textarea */}
           <div className="flex justify-center">
+
             {/* increased max width slightly to enlarge the textarea */}
             <div className="w-full max-w-2xl mx-auto">
               <div className="bg-gray-100 p-4 rounded-full">
@@ -499,6 +500,39 @@ const handleSendBanList = async () => {
               </div>
             </div>
           </div>
+
+        <section class=" bg-gradient-to-b grid place-items-center px-4 mb-6">
+          <div class="max-w-4xl rounded-xl bg-white p-6 shadow-lg md:p-8 mb-24">
+          <ol class="space-y-4 list-decimal list-inside text-gray-800">
+            <p class="pl-1">
+              <span class="font-medium">Détaillez votre demande :</span>
+            </p>
+
+            <li class="pl-1">
+              <span class="font-medium">Chef : </span>
+              nombre d’étoiles, type de cuisine (bistronomique, raffiné, gastronomique, végétal, créative, poisson…), nationalité, nombre de followers
+            </li>
+
+            <li class="pl-1">
+              <span class="font-medium">Lieu : </span>
+              style de décor (moderne, classique, œuvres d’art, contemporain, chaleureux…), localisation (arrondissement, triangle d'or), cuisine ouverte
+            </li>
+
+            <li class="pl-1">
+              Indiquez le type d’événement (dîner assis, cocktail debout, intérieur / extérieur…)
+            </li>
+
+            <li class="pl-1">
+              Indiquez le nombre de personnes présentes à l’événement
+            </li>
+
+            <li class="pl-1">
+              Indiquez le budget par personne en €
+            </li>
+          </ol>
+        </div>
+        </section>
+
         </div>
       </div>
     </div>

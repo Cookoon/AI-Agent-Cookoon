@@ -240,8 +240,7 @@ def build_lieu_criteria_from_prompt(user_prompt, all_lieux, params = {})
   # Capacité
   criteria[:capacite] = params[:capacite] || user_prompt_str[/\b(\d+)\s*personnes?\b/i, 1]
 
-  # Type de lieu
-  criteria[:type_lieu] = params[:type_lieu]
+
 
   # Mots-clés lieux
   all_lieu_keywords = all_lieux

@@ -109,13 +109,12 @@ class Api::AiController < ApplicationController
       RÈGLES IMPORTANTES :
       - Prend en compte en priorité le BUDGET et la CAPACITÉ
       - Le budget chaque combinaison de chef et lieu ne doit pas dépasser le budget total
-      - Le price du lieu ne doit pas dépasser les 75% budget total donné
       - Le price_mimimum_spend et les price_fixed est le prix total minimum à payer pour réserver le chef ou le lieu pour la totalité des invités, pas par personnne.
       - Si il n'y a pas de prix par personne, calcule le prix total divisé par le nombre de personnes.
       - Sélectionne 3 chefs et 3 lieux
-      - Si il y a moins de 3 résultats, donne uniquement ceux pertinents
 
-      - Le NOM doit être sur une LIGNE SÉPARÉE, seul, sans texte avant ou après
+
+      - Le NOM doit être sur une LIGNE SÉPARÉE et en bold, seul, sans texte avant ou après
       - La description commence à la ligne suivante
       - Utilise EXACTEMENT les noms tels qu'ils apparaissent dans la base de données
       - Explique brièvement pourquoi chaque chef/lieu est choisi

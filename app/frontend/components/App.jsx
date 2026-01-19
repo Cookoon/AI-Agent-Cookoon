@@ -196,12 +196,23 @@ function AiAppContent() {
   const navWrapperClass = `transform transition-all duration-500 ease-in-out ${
     showTitle ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-6 pointer-events-none"
   }`;
-  const resultWrapperClass = `  bg-white p-5 rounded-lg shadow-md space-y-4 w-[80vw] min-h-[70vh]
-            -translate-x-16
-            transform transition-all duration-500 ease-out
+
+  // Non-responsive result wrapper (same layout for all screen sizes)
+const resultWrapperClass = `
+  bg-white p-5 rounded-lg shadow-md space-y-4
+  w-full max-w-lg
+  md:w-[80vw] md:max-w-none
+  min-h-[70vh]
+  transform transition-all duration-500 ease-out
   ${
-    resultVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
-  }`;
+    resultVisible
+      ? "opacity-100 translate-y-0"
+      : "opacity-0 translate-y-4 pointer-events-none"
+  }
+  md:-translate-x-16
+`;
+
+
 
     const [selectedLinesChefs, setSelectedLinesChefs] = useState([]);
 
@@ -349,12 +360,12 @@ const handleSendBanList = async () => {
                             <p key={idx}>{line}</p>
                           ))}
                           <button
-                            onClick={() => handleSelectFirstLineLieux(l)}
-                            className="mt-2 px-3 py-1 bg-[#cabb90] rounded text-white"
-                          >
-                           Retirer
-                          </button>
-                        </div>
+                          onClick={() => handleSelectFirstLineLieux(l)}
+                          className="mt-2 px-3 py-1 bg-[#cabb90] rounded text-white"
+                        >
+                          Retirer
+                        </button>
+                          </div>
                       ))
                     ) : (
                       "Aucun lieu trouvé"
@@ -502,7 +513,7 @@ const handleSendBanList = async () => {
           </div>
 
         <section class=" bg-gradient-to-b grid place-items-center px-4 mb-6">
-          <div class="max-w-4xl rounded-xl bg-white p-6 shadow-lg md:p-8 mb-24">
+          <div class="max-w-4xl rounded-l bg-white p-6 shadow-lg md:p-8 mb-24">
           <ol class="space-y-4 list-decimal list-inside text-gray-800">
             <p class="pl-1">
               <span class="font-medium">Détaillez votre demande :</span>

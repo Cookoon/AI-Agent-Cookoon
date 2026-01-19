@@ -109,12 +109,13 @@ class Api::AiController < ApplicationController
       RÈGLES IMPORTANTES :
       - Prend en compte en priorité le BUDGET et la CAPACITÉ
       - Le budget chaque combinaison de chef et lieu ne doit pas dépasser le budget total
+      - Le price du lieu ne doit pas dépasser les 75% budget total donné
       - Le price_mimimum_spend et les price_fixed est le prix total minimum à payer pour réserver le chef ou le lieu pour la totalité des invités, pas par personnne.
       - Si il n'y a pas de prix par personne, calcule le prix total divisé par le nombre de personnes.
       - Sélectionne 3 chefs et 3 lieux
+      - Si il y a moins de 3 résultats, donne uniquement ceux pertinents
 
-
-      - Le NOM doit être sur une LIGNE SÉPARÉE et en bold, seul, sans texte avant ou après
+      - Le NOM doit être sur une LIGNE SÉPARÉE, seul, sans texte avant ou après
       - La description commence à la ligne suivante
       - Utilise EXACTEMENT les noms tels qu'ils apparaissent dans la base de données
       - Explique brièvement pourquoi chaque chef/lieu est choisi
@@ -190,10 +191,8 @@ def build_chef_criteria_from_prompt(user_prompt, all_chefs, params = {})
   criteria[:budget] = params[:budget] || user_prompt_str[/\b(\d+)\s*€/i, 1]
 
   # Nationalité
-  all_nationalities = %w[japonais francais italien mexicain portugais colombien]
-  criteria[:nationality] = params[:nationality] || all_nationalities.find do |nat|
-    user_prompt_str.match?(/#{Regexp.escape(nat)}/i)
-  end
+  # Nationalité: accept explicit param only (heuristic detection removed)
+  criteria[:nationality] = params[:nationality]
 
   # Sexe
   criteria[:sexe] = params[:sexe] || "féminin" if user_prompt_str =~ /\bune\s+chef(fe)?\b/i
@@ -239,7 +238,8 @@ def build_lieu_criteria_from_prompt(user_prompt, all_lieux, params = {})
   # Capacité
   criteria[:capacite] = params[:capacite] || user_prompt_str[/\b(\d+)\s*personnes?\b/i, 1]
 
-
+  # Type de lieu
+  criteria[:type_lieu] = params[:type_lieu]
 
   # Mots-clés lieux
   all_lieu_keywords = all_lieux

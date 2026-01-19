@@ -256,8 +256,6 @@ end
         score += keyword_score(keywords, searched) * 2
       end
 
-    
-
       # Location
       score += 1 if criteria[:location].present? && normalize(l["location"]).include?(normalize(criteria[:location]))
 

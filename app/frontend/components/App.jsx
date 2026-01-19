@@ -298,20 +298,22 @@ const handleSendBanList = async () => {
       {/* Liste des chefs */}
                 {chefs.length > 0 ? (
                   chefs.map((c, i) => (
-                    <div key={i} className="mb-3 p-2 border border-[#cabb90] rounded">
+                                      <div key={i} className="mb-3 p-2 border border-[#cabb90] rounded relative">
                       {c.map((line, idx) => (
                         <p key={idx}>{line}</p>
                       ))}
+
                       {/* Bouton qui ajoute la première ligne */}
                       {c.length > 0 && (
                         <button
                           onClick={() => handleAddFirstLineChefs(c[0])}
-                          className="mt-2 px-3 py-1 bg-[#cabb90] rounded text-white"
+                          className="absolute bottom-2 right-2 px-3 py-1 bg-[#cabb90] rounded text-white hover:beige"
                         >
                           Retirer
                         </button>
                       )}
                     </div>
+
                   ))
                 ) : (
                   "Aucun chef trouvé"
@@ -355,17 +357,19 @@ const handleSendBanList = async () => {
                   <h4 className="font-semibold mb-2 text-[#cabb90]">Lieux</h4>
                   {lieux.length > 0 ? (
                       lieux.map((l, i) => (
-                        <div key={i} className="mb-3 p-2 border border-[#cabb90] rounded">
-                          {l.map((line, idx) => (
-                            <p key={idx}>{line}</p>
-                          ))}
-                          <button
+                        <div key={i} className="mb-3 p-2 border border-[#cabb90] rounded relative">
+                        {l.map((line, idx) => (
+                          <p key={idx}>{line}</p>
+                        ))}
+
+                        <button
                           onClick={() => handleSelectFirstLineLieux(l)}
-                          className="mt-2 px-3 py-1 bg-[#cabb90] rounded text-white"
+                          className="absolute bottom-2 right-2 px-3 py-1 bg-[#cabb90] rounded text-white hover:beige"
                         >
                           Retirer
                         </button>
-                          </div>
+                      </div>
+
                       ))
                     ) : (
                       "Aucun lieu trouvé"
@@ -387,10 +391,10 @@ const handleSendBanList = async () => {
                               }
                               className="ml-3 text-sm text-red-500 hover:text-red-700"
                             >
-      ✕
-    </button>
-  </li>
-))}
+                              ✕
+                            </button>
+                          </li>
+                          ))}
                         </ul>
                       </div>
                     )}
@@ -403,7 +407,7 @@ const handleSendBanList = async () => {
                 }
               `}</style>
 
-              {/* Feedback / Sauvegarde */}
+                    {/* Feedback / Sauvegarde */}
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                               <div className="flex items-center gap-2">
                                 <StarRating />
@@ -428,7 +432,7 @@ const handleSendBanList = async () => {
                           </div>
                         )}
 
-                        {/* Formulaire prompt - centered and slightly wider textarea */}
+          {/* Formulaire prompt - centered and slightly wider textarea */}
           <div className="flex justify-center">
 
             {/* increased max width slightly to enlarge the textarea */}

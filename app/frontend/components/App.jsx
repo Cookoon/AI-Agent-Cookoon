@@ -346,7 +346,7 @@ const showLieuButton = (line) => setHiddenLieuButtons((prev) => prev.filter((l) 
                      <h3>
                   {selectedLinesChefs.length === 1 ? "Chef retiré :" : "Chefs retirés :"}
                     </h3>
-                    <ul className="list-disc list-inside">
+                    <ul className="list-disc pl-5">
                        {selectedLinesChefs.map((line, idx) => (
                         <li
                           key={idx}

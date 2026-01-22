@@ -60,7 +60,6 @@ class Api::AiController < ApplicationController
     additional_prompt_record = AdditionalPrompt.first
     additional_prompt = additional_prompt_record&.content || ""
 
-
     # ------------------ Construction du prompt AI ------------------
     combined_prompt = <<~PROMPT
 
@@ -190,8 +189,6 @@ def build_chef_criteria_from_prompt(user_prompt, all_chefs, params = {})
   # Budget
   criteria[:budget] = params[:budget] || user_prompt_str[/\b(\d+)\s*€/i, 1]
 
-  # Nationalité
-  # Nationalité: accept explicit param only (heuristic detection removed)
   criteria[:nationality] = params[:nationality]
 
   # Sexe
@@ -206,7 +203,6 @@ criteria[:etoile] =
     user_prompt_str.match?(/\bétoilé(e|s)?\b/i) ? 1 :
     nil
   )
-
 
   # Attributs directs
   criteria[:cuisine] = params[:cuisine]
@@ -261,7 +257,6 @@ def build_lieu_criteria_from_prompt(user_prompt, all_lieux, params = {})
 
   criteria
 end
-
 
   def estimate_tokens(text)
     return 0 if text.blank?

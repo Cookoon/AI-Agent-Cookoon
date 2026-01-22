@@ -267,12 +267,12 @@ end
       l.merge("_score" => score)
     end
 
-    # Retirer ceux avec score 0, fallback si vide
-    scored = filtered.select { |c| c["_score"] > 0 }
-    filtered = scored.any? ? scored : filtered
+   # Retirer ceux avec score 0, fallback si vide
+scored = filtered.select { |c| c["_score"] > 0 }
+filtered = scored.any? ? scored : filtered
 
-    # Trier par score décroissant et limiter
-    filtered.sort_by { |l| -l["_score"] }
+# Trier par score décroissant et réassigner
+filtered = filtered.sort_by { |l| -l["_score"] }
 
   end
 end

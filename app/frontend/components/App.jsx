@@ -72,11 +72,14 @@ function AiAppContent() {
           ? chefsMatch[1].trim().split(/\n\n+/).map((c) => c.split("\n"))
           : []
       );
+      // reset per-item hidden states when new results arrive
+      setHiddenChefButtons([]);
       setLieux(
         lieuxMatch
           ? lieuxMatch[1].trim().split(/\n\n+/).map((l) => l.split("\n"))
           : []
       );
+      setHiddenLieuButtons([]);
     } catch (e) {
       setResultText("Erreur : " + e.message);
       setChefs([]);
@@ -215,12 +218,14 @@ const resultWrapperClass = `
 
 
     const [selectedLinesChefs, setSelectedLinesChefs] = useState([]);
+    const [showRemovedChefsVisible, setShowRemovedChefsVisible] = useState(false);
 
   const handleAddFirstLineChefs = (line) => {
     setSelectedLinesChefs((prev) => [...prev, line]);
   };
 
   const [selectedLinesLieux, setSelectedLinesLieux] = useState([]);
+  const [showRemovedLieuxVisible, setShowRemovedLieuxVisible] = useState(false);
 
   const handleSelectFirstLineLieux = (lines) => {
     if (lines.length > 0) {
@@ -253,6 +258,17 @@ const handleSendBanList = async () => {
 
   }
 };
+
+// Track hidden "Retirer" buttons per item (by first-line text)
+const [hiddenChefButtons, setHiddenChefButtons] = useState([]);
+const hideChefButton = (line) =>
+  setHiddenChefButtons((prev) => (prev.includes(line) ? prev : [...prev, line]));
+const showChefButton = (line) => setHiddenChefButtons((prev) => prev.filter((l) => l !== line));
+
+const [hiddenLieuButtons, setHiddenLieuButtons] = useState([]);
+const hideLieuButton = (line) =>
+  setHiddenLieuButtons((prev) => (prev.includes(line) ? prev : [...prev, line]));
+const showLieuButton = (line) => setHiddenLieuButtons((prev) => prev.filter((l) => l !== line));
 
 
 
@@ -303,15 +319,20 @@ const handleSendBanList = async () => {
                         <p key={idx}>{line}</p>
                       ))}
 
-                      {/* Bouton qui ajoute la première ligne */}
+
                       {c.length > 0 && (
-                        <button
-                          onClick={() => handleAddFirstLineChefs(c[0])}
-                          className="absolute bottom-2 right-2 px-3 py-1 bg-[#cabb90] rounded text-white hover:beige"
-                        >
-                          Retirer
-                        </button>
-                      )}
+                          <button
+                            onClick={() => {
+                              handleAddFirstLineChefs(c[0]);
+                              hideChefButton(c[0]);
+                            }}
+                            aria-hidden={hiddenChefButtons.includes(c[0])}
+                            className={`absolute bottom-2 right-2 px-3 py-1 bg-[#cabb90] rounded text-white hover:beige transition-opacity duration-300 ease-out ${hiddenChefButtons.includes(c[0]) ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                          >
+                            Retirer
+                          </button>
+                        )}
+
                     </div>
 
                   ))
@@ -323,7 +344,7 @@ const handleSendBanList = async () => {
                 {selectedLinesChefs.length > 0 && (
                   <div className="mt-5">
                      <h3>
-      {selectedLinesChefs.length === 1 ? "Chef retiré :" : "Chefs retirés :"}
+                  {selectedLinesChefs.length === 1 ? "Chef retiré :" : "Chefs retirés :"}
                     </h3>
                     <ul className="list-disc list-inside">
                        {selectedLinesChefs.map((line, idx) => (
@@ -333,15 +354,17 @@ const handleSendBanList = async () => {
                         >
                           <span>{line}</span>
 
-                          <button
-                            onClick={() =>
-                              setSelectedLinesChefs(prev =>
-                                prev.filter((_, i) => i !== idx)
-                              )
-                            }
+                                                  <button
+                            onClick={() => {
+                              const removed = selectedLinesChefs[idx];
+                              setSelectedLinesChefs(prev => prev.filter((_, i) => i !== idx));
+                              // show the Retirer button for this chef again
+                              showChefButton(removed);
+                            }}
                             className="ml-3 text-sm text-red-500 hover:text-red-700 transition"
                             aria-label="Retirer ce chef"
                           >
+
                             ✕
                           </button>
                         </li>
@@ -362,12 +385,17 @@ const handleSendBanList = async () => {
                           <p key={idx}>{line}</p>
                         ))}
 
-                        <button
-                          onClick={() => handleSelectFirstLineLieux(l)}
-                          className="absolute bottom-2 right-2 px-3 py-1 bg-[#cabb90] rounded text-white hover:beige"
-                        >
-                          Retirer
-                        </button>
+                          <button
+                            onClick={() => {
+                              handleSelectFirstLineLieux(l);
+                              hideLieuButton(l[0]);
+                            }}
+                            aria-hidden={hiddenLieuButtons.includes(l[0])}
+                            className={`absolute bottom-2 right-2 px-3 py-1 bg-[#cabb90] rounded text-white hover:beige transition-opacity duration-300 ease-out ${hiddenLieuButtons.includes(l[0]) ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                          >
+                            Retirer
+                          </button>
+
                       </div>
 
                       ))
@@ -382,17 +410,18 @@ const handleSendBanList = async () => {
                           {selectedLinesLieux.map((line, idx) => (
                             <li key={idx} className="flex items-center justify-between">
                               <span>{line}</span>
-
                             <button
-                              onClick={() =>
-                                setSelectedLinesLieux(prev =>
-                                  prev.filter((_, i) => i !== idx)
-                                )
-                              }
+                              onClick={() => {
+                                const removed = selectedLinesLieux[idx];
+                                setSelectedLinesLieux(prev => prev.filter((_, i) => i !== idx));
+                                // show the Retirer button for this lieu again
+                                showLieuButton(removed);
+                              }}
                               className="ml-3 text-sm text-red-500 hover:text-red-700"
                             >
                               ✕
                             </button>
+
                           </li>
                           ))}
                         </ul>

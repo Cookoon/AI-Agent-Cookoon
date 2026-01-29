@@ -20,6 +20,10 @@ class Api::SessionsController < ApplicationController
 
   # GET /api/me
   def me
+    Rails.logger.debug "[API ME] Request cookies: #{request.cookies.inspect}"
+    Rails.logger.debug "[API ME] Request header Cookie: #{request.headers['Cookie'].inspect}"
+    Rails.logger.debug "[API ME] Session keys: #{session.to_hash.keys.inspect}"
+
     if session[:user_id]
       user = User.find(session[:user_id])
       render json: { name: user.name }, status: :ok

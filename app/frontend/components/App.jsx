@@ -506,58 +506,59 @@ const showLieuButton = (line) => setHiddenLieuButtons((prev) => prev.filter((l) 
                       }
                     }}
                   />
+                  <div className="absolute right-2 bottom-3.5 flex items-center gap-2">
+                    {/* compact Calendar button to match submit size */}
+                    <Calendar selected={date} onChange={setDate} compact />
 
-                  {/* Bouton aligné en bas à droite de la zone (reste en bas quand la textarea s'agrandit) */}
-                  <button
-                    onClick={() => {
-                        handleSubmit();
-                      }}
-                    disabled={loading}
-                    className={`
-                      absolute right-2 bottom-3.5
-                      h-9 w-9 sm:h-10 sm:w-10 rounded-full
-                      text-white
-                      flex items-center justify-center
-                      transition-colors hover:brightness-90
-                      ${loading ? "bg-transparent" : "bg-[#cabb90]"}
-                    `}
-                    aria-label="Envoyer la demande"
-                  >
-                    {loading ? (
-                      <svg
-                        className="h-5 w-5 animate-spin text-[#cabb90]"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        role="status"
-                        aria-label="Chargement"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
+                    {/* Bouton aligné à côté du calendar */}
+                    <button
+                      onClick={() => handleSubmit()}
+                      disabled={loading}
+                      className={`
+                        h-9 w-9 sm:h-10 sm:w-10 rounded-full
+                        text-white
+                        flex items-center justify-center
+                        transition-colors hover:brightness-90
+                        ${loading ? "bg-transparent" : "bg-[#cabb90]"}
+                      `}
+                      aria-label="Envoyer la demande"
+                    >
+                      {loading ? (
+                        <svg
+                          className="h-5 w-5 animate-spin text-[#cabb90]"
+                          viewBox="0 0 24 24"
                           fill="none"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          strokeLinecap="round"
-                          d="M12 2 a10 10 0 0 1 10 10"
-                        />
-                      </svg>
-                    ) : (
-                      <FontAwesomeIcon icon={faArrowUp} />
-                    )}
-                  </button>
+                          role="status"
+                          aria-label="Chargement"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            strokeLinecap="round"
+                            d="M12 2 a10 10 0 0 1 10 10"
+                          />
+                        </svg>
+                      ) : (
+                        <FontAwesomeIcon icon={faArrowUp} />
+                      )}
+                    </button>
+                  </div>
                 </div>
+
               </div>
             </div>
 
           </div>
-             <Calendar selected={date} onChange={setDate} />
         <section class=" bg-gradient-to-b grid place-items-center px-4 mb-6">
           <div class="max-w-4xl rounded-l bg-white p-6 shadow-lg md:p-8 mb-24">
           <ol class="space-y-4 list-decimal list-inside text-gray-800">

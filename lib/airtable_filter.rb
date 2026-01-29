@@ -31,7 +31,8 @@ class AirtableFilter
   # ----------------- HELPERS -----------------
   def self.normalize(str)
     # remove accents for safer matching if I18n is available
-    s = str.to_s
+    # If the Airtable field is an Array (multi-select), join values with space
+    s = str.is_a?(Array) ? str.join(' ') : str.to_s
     if defined?(I18n) && I18n.respond_to?(:transliterate)
       s = I18n.transliterate(s)
     else
@@ -104,39 +105,47 @@ def self.filter_chefs(chefs, criteria)
     debug_reasons = []
 
     if criteria[:key_words_chefs].present?
-      searched = criteria[:key_words_chefs].downcase.split(/[\s,;]+/)
-      keywords = c["key_words"].to_s.downcase.split(/[\s,;]+/)
+      searched = criteria[:key_words_chefs].to_s.downcase.split(/[\s,;]+/)
+      keywords = Array(c["key_words"]).flat_map { |k| k.to_s.downcase.split(/[\s,;]+/) }
       kw_score = keyword_score(keywords, searched) * 2
       score += kw_score
       debug_reasons << "keywords(+#{kw_score})" if kw_score > 0
     end
 
-      if criteria[:etoile].present?
-  recon = normalize(c["reconnaissance"])
-  if criteria[:etoile].to_i == 0
-    score += 1 if recon.match?(/\bnon[\s-]*étoilé(e|s)?\b/i)
-  else
-    score += 1 if recon.match?(/\b#{criteria[:etoile]}\s*étoile?s?\b/i)
-  end
-end
+    if criteria[:etoile].present?
+      # Airtable multi-selects may be arrays; join them before normalization
+      recon = normalize(Array(c["reconnaissance"]).join(' '))
+      if criteria[:etoile].to_i == 0
+        if recon.match?(/\bnon[\s-]*étoilé(e|s)?\b/i)
+          score += 1
+          debug_reasons << "reconnaissance(+1)"
+        end
+      else
+        if recon.match?(/\b#{Regexp.escape(criteria[:etoile].to_s)}\s*étoile?s?\b/i)
+          score += 1
+          debug_reasons << "reconnaissance(+1)"
+        end
+      end
+    end
 
 
     if criteria[:cuisine].present?
-      if normalize(c["type_of_cooking"]).include?(normalize(criteria[:cuisine]))
+      # type_of_cooking may be an array; join then normalize
+      if normalize(Array(c["type_of_cooking"]).join(' ')).include?(normalize(criteria[:cuisine]))
         score += 1
         debug_reasons << "cuisine(+1)"
       end
     end
 
     if criteria[:top_chef].present?
-      if normalize(c["top_chef"]) == normalize(criteria[:top_chef])
+      if normalize(Array(c["top_chef"]).join(' ')) == normalize(criteria[:top_chef])
         score += 1
         debug_reasons << "top_chef(+1)"
       end
     end
 
     if criteria[:have_restaurant].present?
-      if normalize(c["have_restaurant"]) == normalize(criteria[:have_restaurant])
+      if normalize(Array(c["have_restaurant"]).join(' ')) == normalize(criteria[:have_restaurant])
         score += 1
         debug_reasons << "have_restaurant(+1)"
       end

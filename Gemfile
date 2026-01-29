@@ -20,6 +20,12 @@ gem 'rack-cors', require: 'rack/cors'
 
 gem 'prawn-table'
 
+# Gemfile
+gem 'faraday', '~> 2.9'
+
+gem 'faraday-cookie_jar'
+
+
 
 
 

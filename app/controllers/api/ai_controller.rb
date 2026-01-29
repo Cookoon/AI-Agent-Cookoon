@@ -22,34 +22,31 @@ class Api::AiController < ApplicationController
       (AirtableService.new("Lieux").all.fetch("records", []) rescue []).map { |l| l["fields"] }
     end
 
+    # Accept ban lists from frontend
+    ban_chefs = params[:ban_chefs] || params['ban_chefs'] || params[:chefs] || params['chefs'] || (params[:ai] && (params[:ai][:ban_chefs] || params[:ai]['ban_chefs'])) || []
+    ban_lieux = params[:ban_lieux] || params['ban_lieux'] || params[:lieux] || params['lieux'] || (params[:ai] && (params[:ai][:ban_lieux] || params[:ai]['ban_lieux'])) || []
 
-  # Accept ban lists from frontend: prefer ban_chefs/ban_lieux, fallback to legacy keys or nested ai payload
-  ban_chefs = params[:ban_chefs] || params['ban_chefs'] || params[:chefs] || params['chefs'] || (params[:ai] && (params[:ai][:ban_chefs] || params[:ai]['ban_chefs'])) || []
-  ban_lieux = params[:ban_lieux] || params['ban_lieux'] || params[:lieux] || params['lieux'] || (params[:ai] && (params[:ai][:ban_lieux] || params[:ai]['ban_lieux'])) || []
-
-  ban_list = { chefs: Array(ban_chefs), lieux: Array(ban_lieux) }
+    ban_list = { chefs: Array(ban_chefs), lieux: Array(ban_lieux) }
 
     # ------------------ Extraction des critères ------------------
     criteria = build_criteria_from_prompt_auto(user_prompt, chefs_data, lieux_data, params)
 
-  # ------------------ Filtrage ------------------
-  # build_criteria_from_prompt_auto returns a hash with :chefs and :lieux
-  chefs_criteria = criteria[:chefs] || {}
-  lieux_criteria = criteria[:lieux] || {}
+    # ------------------ Filtrage ------------------
+    chefs_criteria = criteria[:chefs] || {}
+    lieux_criteria = criteria[:lieux] || {}
 
-  # attach ban lists to criteria so filters can remove banned entries early
-  chefs_criteria[:ban_chefs] = ban_list[:chefs]
-  lieux_criteria[:ban_lieux] = ban_list[:lieux]
+    chefs_criteria[:ban_chefs] = ban_list[:chefs]
+    lieux_criteria[:ban_lieux] = ban_list[:lieux]
 
-  chefs_filtered = AirtableFilter.filter_chefs(chefs_data, chefs_criteria)
-  lieux_filtered = AirtableFilter.filter_lieux(lieux_data, lieux_criteria)
+    chefs_filtered = AirtableFilter.filter_chefs(chefs_data, chefs_criteria)
+    lieux_filtered = AirtableFilter.filter_lieux(lieux_data, lieux_criteria)
 
     # ------------------ Supprimer colonnes inutiles ------------------
     chefs_filtered = chefs_filtered.map { |c| c.except("description") }
     lieux_filtered = lieux_filtered.map { |l| l.except("description") }
 
     # ----------------- Récupération des derniers feedbacks -----------------
-    last_feedbacks = Feedback.order(created_at: :desc).map do |f|
+    last_feedbacks = Feedback.order(created_at: :desc).limit(10).map do |f|
       {
         rating: f.rating,
         prompt: f.prompt_text,
@@ -60,69 +57,218 @@ class Api::AiController < ApplicationController
     additional_prompt_record = AdditionalPrompt.first
     additional_prompt = additional_prompt_record&.content || ""
 
+    # ------------------ Cookoon availability (FIXED VERSION) ------------------
+    schedule_date = params[:schedule_date]
+    service_type = params[:service_type]
+
+    # FIX: Auto-detect service_type from prompt if not provided
+    if service_type.blank? && schedule_date.present?
+      prompt_lower = user_prompt.downcase
+
+      if prompt_lower.match?(/déjeuner|lunch/)
+        service_type = prompt_lower.include?('cocktail') ? 'lunch_cocktail' : 'lunch'
+      elsif prompt_lower.match?(/dîner|diner|soir/)
+        service_type = prompt_lower.include?('cocktail') ? 'diner_cocktail' : 'diner'
+      else
+        # Default to diner if not specified
+        service_type = 'diner'
+      end
+
+      Rails.logger.info "[AI] service_type auto-detected: #{service_type}"
+    end
+
+    # Normalisation ROBUSTE pour matching
+    normalize_name = ->(name) do
+      return '' if name.nil?
+      name.to_s
+        .unicode_normalize(:nfkd)  # Décompose les accents
+        .gsub(/[^\x00-\x7F]/, '')  # Supprime caractères non-ASCII
+        .downcase
+        .gsub(/[^a-z0-9\s]/, '')   # Garde seulement lettres, chiffres, espaces
+        .gsub(/\s+/, ' ')          # Espaces multiples -> un seul
+        .strip
+    end
+
+    # Variables pour stocker les résultats
+    chefs_with_status = []
+    lieux_with_status = []
+
+    if schedule_date.blank? || service_type.blank?
+      Rails.logger.warn "[Cookoon] Missing schedule_date (#{schedule_date.inspect}) or service_type (#{service_type.inspect}), skipping availability"
+      chefs_with_status = chefs_filtered.map { |c| c.merge('availability' => 'unknown') }
+      lieux_with_status = lieux_filtered.map { |l| l.merge('availability' => 'unknown') }
+    else
+      cookoon_service = CookoonService.new
+      cookoon_results = cookoon_service.fetch_schedule_by_date(schedule_date)
+
+      Rails.logger.info "[Cookoon DEBUG] Received keys: #{cookoon_results.keys.inspect}"
+
+      # Isoler les données chefs et lieux
+      chefs_results = cookoon_results[:chefsResults] || {}
+      lieux_results = cookoon_results[:cookoonsResults] || {}
+
+      # Format de la clé de date: "2026-01-29" avec tirets
+      date_key = schedule_date.to_s.gsub('/', '-')
+      date_sym = date_key.to_sym
+      service_sym = service_type.to_s.to_sym
+
+      Rails.logger.info "[Cookoon] Looking for date: #{date_sym}, service: #{service_sym}"
+      Rails.logger.info "[Cookoon] Available date keys: #{chefs_results.keys.inspect}"
+
+      # Extraction des données pour cette date/service
+      cookoon_chefs_data = (chefs_results[date_sym] || {})[service_sym] || {}
+      cookoon_lieux_data = (lieux_results[date_sym] || {})[service_sym] || {}
+
+      # Récupérer les listes
+      available_chefs   = Array(cookoon_chefs_data[:available])
+      unavailable_chefs = Array(cookoon_chefs_data[:unavailable])
+      available_lieux   = Array(cookoon_lieux_data[:available])
+      unavailable_lieux = Array(cookoon_lieux_data[:unavailable])
+
+      Rails.logger.info "[Cookoon] Chefs - Available: #{available_chefs.size}, Unavailable: #{unavailable_chefs.size}"
+      Rails.logger.info "[Cookoon] Lieux - Available: #{available_lieux.size}, Unavailable: #{unavailable_lieux.size}"
+
+      # Normaliser les listes Cookoon
+      available_chefs_normalized = available_chefs.map(&normalize_name)
+      unavailable_chefs_normalized = unavailable_chefs.map(&normalize_name)
+
+      # For lieux, keep both full normalized names and base names (before location suffixes)
+      available_lieux_full = available_lieux.map { |n| normalize_name.call(n) }
+      available_lieux_basenames = available_lieux.map { |n| normalize_name.call(n.to_s.split(/\s*[-–—]\s*/).first) }
+      available_lieux_normalized = (available_lieux_full + available_lieux_basenames).uniq
+
+      # Debug: afficher quelques exemples
+      if available_chefs_normalized.any?
+        Rails.logger.debug "[Cookoon] Sample available chef normalized: #{available_chefs_normalized.first}"
+      end
+      if unavailable_chefs_normalized.any?
+        Rails.logger.debug "[Cookoon] Sample unavailable chef normalized: #{unavailable_chefs_normalized.first}"
+      end
+
+      # CHEFS: Ajout du statut de disponibilité
+      chefs_with_status = chefs_filtered.map do |chef|
+        chef_name = chef['name'] || chef['id'] || ''
+        normalized = normalize_name.call(chef_name)
+
+        availability = if available_chefs_normalized.include?(normalized)
+                         'available'
+                       else
+                         'unavailable'
+                       end
+
+        # Debug log pour chefs problématiques
+        if availability == 'unknown' && chef_name.present?
+          Rails.logger.debug "[Cookoon] Chef '#{chef_name}' → '#{normalized}' NOT FOUND in Cookoon"
+        elsif availability == 'unavailable'
+          Rails.logger.debug "[Cookoon] Chef '#{chef_name}' → UNAVAILABLE"
+        end
+
+        chef.merge('availability' => availability)
+      end
+
+      # LIEUX: Ajout du statut de disponibilité (robuste : compare full name, base name, substrings)
+      lieux_with_status = lieux_filtered.map do |lieu|
+        lieu_name = lieu['name'] || lieu['id'] || ''
+        normalized = normalize_name.call(lieu_name)
+        base_normalized = normalize_name.call(lieu_name.to_s.split(/\s*[-–—]\s*/).first)
+
+        matched = available_lieux_normalized.any? do |a|
+          a == normalized || a == base_normalized || a.include?(normalized) || normalized.include?(a) || a == normalize_name.call(base_normalized)
+        end
+
+        availability = matched ? 'available' : 'unavailable'
+
+        unless matched
+          Rails.logger.debug "[Cookoon] Lieu '#{lieu_name}' -> normalized='#{normalized}', base='#{base_normalized}' NOT FOUND in available list"
+        end
+
+        lieu.merge('availability' => availability)
+      end
+
+      # Statistiques finales
+      chef_stats = chefs_with_status.group_by { |c| c['availability'] }.transform_values(&:count)
+      lieu_stats = lieux_with_status.group_by { |l| l['availability'] }.transform_values(&:count)
+
+      Rails.logger.info "[Cookoon STATS] Chefs: #{chef_stats.inspect}"
+      Rails.logger.info "[Cookoon STATS] Lieux: #{lieu_stats.inspect}"
+    end
+
     # ------------------ Construction du prompt AI ------------------
     combined_prompt = <<~PROMPT
 
-      Voici les données disponibles :
+    Si aucune date n'est fournie, ou si le service n'est pas spécifié, considère que la disponibilité des chefs et lieux est "unknown".
+    📅 Date demandée : #{schedule_date}
+    🍽️ Service : #{service_type}
 
-      #{ban_list.to_json} est la liste des chefs et lieux à exclure
+    Chaque chef et chaque lieu possède un statut de disponibilité :
+    - "available" : disponible à cette date
+    - "unavailable" : non disponible à cette date
+    - "unknown" : statut inconnu
 
-      Chefs :
-      #{chefs_filtered.to_json}
 
-      Lieux :
-      #{lieux_filtered.to_json}
+    ⚠️ Privilégie TOUJOURS les éléments "available".
+    ⚠️ Si un chef ou lieu est marqué "unavailable", tu peux le proposer uniquement si aucun autre choix n'est possible.
 
-      Historique récent des feedbacks noté /5 :
-      #{last_feedbacks.to_json}
+    #{ban_list.to_json} est la liste des chefs et lieux à exclure
 
-      Nouvelle demande utilisateur :
-      "#{user_prompt}"
+    Chefs :
+    #{chefs_with_status.to_json}
 
-      Instructions pour la réponse :
-      1. Sélectionne les éléments les plus pertinents en fonction de tous les mot clés dans la base de donnée.
-      2. Respecte le budget si fourni, il ne doit pas être dépassé.
-      3. Ne résume pas le prompt, donne directement la réponse.
-      4. Présente les informations clairement et lisiblement.
-      5. Les feedbacks précédents doivent t'aider à améliorer la qualité des suggestions mais ne doivent pas être ta source principal pour prendre une décision.
-      6. Soit permissif il me faut toujours 3 résultats par catégorie, même si ce n'est pas totalement pertinent.
+    Lieux :
+    #{lieux_with_status.to_json}
 
-      **FORMAT DE RÉPONSE OBLIGATOIRE** :
+    Historique récent des feedbacks noté /5 :
+    #{last_feedbacks.to_json}
 
-      Met les plus pertinents en premier
+    Nouvelle demande utilisateur :
+    "#{user_prompt}"
 
-      CHEFS :
+    Instructions pour la réponse :
+    1. VÉRIFIE LE STATUT "availability" de chaque chef/lieu AVANT de le suggérer
+    2. Suggère uniquement les chefs et lieux "available" si possible
+    4. Respecte le budget si fourni, il ne doit pas être dépassé
+    5. Ne résume pas le prompt, donne directement la réponse
+    6. Présente les informations clairement et lisiblement
+    7. Les feedbacks précédents doivent t'aider à améliorer la qualité des suggestions
+    8. Essaie de fournir 3 résultats par catégorie, mais seulement parmi ceux disponibles
 
-      [Nom du Chef 1]
-      [Description]
-      Prix : XX€ par personne
-      Prix total pour [N] personnes : XXX€
+    **FORMAT DE RÉPONSE OBLIGATOIRE** :
 
-      LIEUX :
-      [Nom du Lieu 1]
-      [Description]
-      Prix fixe : XXX€
-      Prix par personne : XX€
-      Prix total pour [N] personnes : XXX€
 
-      RÈGLES IMPORTANTES :
-      - Prend en compte en priorité le BUDGET et la CAPACITÉ
-      - Le budget chaque combinaison de chef et lieu ne doit pas dépasser le budget total
-      - Le price du lieu ne doit pas dépasser les 75% budget total donné
-      - Le price_mimimum_spend et les price_fixed est le prix total minimum à payer pour réserver le chef ou le lieu pour la totalité des invités, pas par personnne.
-      - Si il n'y a pas de prix par personne, calcule le prix total divisé par le nombre de personnes.
-      - Sélectionne 3 chefs et 3 lieux
-      - Si il y a moins de 3 résultats, donne uniquement ceux pertinents
+    Met les plus pertinents en premier
 
-      - Le NOM doit être sur une LIGNE SÉPARÉE, seul, sans texte avant ou après
-      - La description commence à la ligne suivante
-      - Utilise EXACTEMENT les noms tels qu'ils apparaissent dans la base de données
-      - Explique brièvement pourquoi chaque chef/lieu est choisi
-      - Exprime toi de manière claire et concise sans cité les mots clés dans des ""
-      - Indique tous les prix clairement
+    CHEFS :
 
-      Prompt additionnel de l'utilisateur à prendre en compte, si il contredit les instructions précédentes, c'est ce prompt additionnel qui prévaut :
-      #{additional_prompt}
+    [Nom du Chef 1]
+    [Description]
+    Prix : XX€ par personne
+    Prix total pour [N] personnes : XXX€
+    Disponibilité : available (n'explique pas juste indique le statut)
+
+    LIEUX :
+    [Nom du Lieu 1]
+    [Description]
+    Prix fixe : XXX€
+    Prix par personne : XX€
+    Prix total pour [N] personnes : XXX€
+    Disponibilité : available (n'explique pas juste indique le statut)
+
+    RÈGLES IMPORTANTES :
+    - Prend en compte en priorité le BUDGET et la CAPACITÉ
+    - Le budget de chaque combinaison chef+lieu ne doit pas dépasser le budget total
+    - Le price du lieu ne doit pas dépasser 75% du budget total
+    - Le price_minimum_spend et price_fixed sont les prix totaux minimums (pas par personne)
+    - Si pas de prix par personne, calcule: prix total ÷ nombre de personnes
+    - Sélectionne jusqu'à 3 chefs et 3 lieux DISPONIBLES
+    - Si moins de 3 disponibles, donne uniquement ceux qui sont disponibles
+    - Le NOM doit être sur une LIGNE SÉPARÉE, seul
+    - La description commence à la ligne suivante
+    - Utilise EXACTEMENT les noms de la base de données
+    - Explique brièvement pourquoi chaque choix
+    - Indique tous les prix clairement
+
+    Prompt additionnel de l'utilisateur à prendre en compte, si il contredit les instructions précédentes, c'est ce prompt additionnel qui prévaut :
+    #{additional_prompt}
     PROMPT
 
     # ------------------ Estimation des tokens ------------------
@@ -175,88 +321,97 @@ class Api::AiController < ApplicationController
 
   private
 
- def build_criteria_from_prompt_auto(user_prompt, all_chefs, all_lieux, params = {})
-  {
-    chefs: build_chef_criteria_from_prompt(user_prompt, all_chefs, params),
-    lieux: build_lieu_criteria_from_prompt(user_prompt, all_lieux, params)
-  }
-end
-
-def build_chef_criteria_from_prompt(user_prompt, all_chefs, params = {})
-  criteria = {}
-  user_prompt_str = user_prompt.to_s.strip
-
-  # Budget
-  criteria[:budget] = params[:budget] || user_prompt_str[/\b(\d+)\s*€/i, 1]
-
-  criteria[:nationality] = params[:nationality]
-
-  # Sexe
-  criteria[:sexe] = params[:sexe] || "féminin" if user_prompt_str =~ /\bune\s+chef(fe)?\b/i
-
-  # Étoiles
-criteria[:etoile] =
-  params[:etoile] ||
-  user_prompt_str[/\b(\d+)\s*é?toile?s?\b/i, 1] ||
-  (
-    user_prompt_str.match?(/\bnon\s+étoilé(e|s)?\b/i) ? 0 :
-    user_prompt_str.match?(/\bétoilé(e|s)?\b/i) ? 1 :
-    nil
-  )
-
-  # Attributs directs
-  criteria[:cuisine] = params[:cuisine]
-  criteria[:top_chef] = params[:top_chef]
-  criteria[:have_restaurant] = params[:have_restaurant]
-  criteria[:followers] = params[:followers]
-
-  # Mots-clés chefs
-  all_chef_keywords = all_chefs
-    .flat_map { |c| c["key_words"].to_s.split(/[\s,;]+/) }
-    .uniq
-
-  matched_chef_words = all_chef_keywords.select do |w|
-    user_prompt_str.match?(/\b#{Regexp.escape(w)}\b/i)
+  def normalize(value)
+    case value
+    when Hash
+      (value['name'] || value[:name] || '').to_s.strip.downcase
+    else
+      value.to_s.strip.downcase
+    end
   end
 
-  criteria[:key_words_chefs] = matched_chef_words.join(", ") unless matched_chef_words.empty?
-
-  criteria
-end
-
-def build_lieu_criteria_from_prompt(user_prompt, all_lieux, params = {})
-  criteria = {}
-  user_prompt_str = user_prompt.to_s.strip
-
-  # Prix
-  criteria[:price] = params[:price] || user_prompt_str[/\b(\d+)\s*€/i, 1]
-
-  # Capacité
-  criteria[:capacite] = params[:capacite] || user_prompt_str[/\b(\d+)\s*personnes?\b/i, 1]
-
-  # Type de lieu
-  criteria[:type_lieu] = params[:type_lieu]
-
-  # Mots-clés lieux
-  all_lieu_keywords = all_lieux
-    .flat_map { |l| l["key_words"].to_s.split(/[\s,;]+/) }
-    .uniq
-
-  matched_lieu_words = all_lieu_keywords.select do |w|
-    user_prompt_str.match?(/\b#{Regexp.escape(w)}\b/i)
+  def build_criteria_from_prompt_auto(user_prompt, all_chefs, all_lieux, params = {})
+    {
+      chefs: build_chef_criteria_from_prompt(user_prompt, all_chefs, params),
+      lieux: build_lieu_criteria_from_prompt(user_prompt, all_lieux, params)
+    }
   end
 
-  criteria[:key_words_lieux] = matched_lieu_words.join(", ") unless matched_lieu_words.empty?
+  def build_chef_criteria_from_prompt(user_prompt, all_chefs, params = {})
+    criteria = {}
+    user_prompt_str = user_prompt.to_s.strip
 
-  # Attributs directs
-  criteria[:location] = params[:location]
-  criteria[:open_kitchen] = params[:open_kitchen]
-  criteria[:cheminy] = params[:cheminy]
-  criteria[:amenities] = params[:amenities]
-  criteria[:outisde_type] = params[:outisde_type]
+    # Budget
+    criteria[:budget] = params[:budget] || user_prompt_str[/\b(\d+)\s*€/i, 1]
 
-  criteria
-end
+    criteria[:nationality] = params[:nationality]
+
+    # Sexe
+    criteria[:sexe] = params[:sexe] || "féminin" if user_prompt_str =~ /\bune\s+chef(fe)?\b/i
+
+    # Étoiles
+    criteria[:etoile] =
+      params[:etoile] ||
+      user_prompt_str[/\b(\d+)\s*é?toile?s?\b/i, 1] ||
+      (
+        user_prompt_str.match?(/\bnon\s+étoilé(e|s)?\b/i) ? 0 :
+        user_prompt_str.match?(/\bétoilé(e|s)?\b/i) ? 1 :
+        nil
+      )
+
+    # Attributs directs
+    criteria[:cuisine] = params[:cuisine]
+    criteria[:top_chef] = params[:top_chef]
+    criteria[:have_restaurant] = params[:have_restaurant]
+    criteria[:followers] = params[:followers]
+
+    # Mots-clés chefs
+    all_chef_keywords = all_chefs
+      .flat_map { |c| c["key_words"].to_s.split(/[\s,;]+/) }
+      .uniq
+
+    matched_chef_words = all_chef_keywords.select do |w|
+      user_prompt_str.match?(/\b#{Regexp.escape(w)}\b/i)
+    end
+
+    criteria[:key_words_chefs] = matched_chef_words.join(", ") unless matched_chef_words.empty?
+
+    criteria
+  end
+
+  def build_lieu_criteria_from_prompt(user_prompt, all_lieux, params = {})
+    criteria = {}
+    user_prompt_str = user_prompt.to_s.strip
+
+    # Prix
+    criteria[:price] = params[:price] || user_prompt_str[/\b(\d+)\s*€/i, 1]
+
+    # Capacité
+    criteria[:capacite] = params[:capacite] || user_prompt_str[/\b(\d+)\s*personnes?\b/i, 1]
+
+    # Type de lieu
+    criteria[:type_lieu] = params[:type_lieu]
+
+    # Mots-clés lieux
+    all_lieu_keywords = all_lieux
+      .flat_map { |l| l["key_words"].to_s.split(/[\s,;]+/) }
+      .uniq
+
+    matched_lieu_words = all_lieu_keywords.select do |w|
+      user_prompt_str.match?(/\b#{Regexp.escape(w)}\b/i)
+    end
+
+    criteria[:key_words_lieux] = matched_lieu_words.join(", ") unless matched_lieu_words.empty?
+
+    # Attributs directs
+    criteria[:location] = params[:location]
+    criteria[:open_kitchen] = params[:open_kitchen]
+    criteria[:cheminy] = params[:cheminy]
+    criteria[:amenities] = params[:amenities]
+    criteria[:outside_type] = params[:outside_type]
+
+    criteria
+  end
 
   def estimate_tokens(text)
     return 0 if text.blank?

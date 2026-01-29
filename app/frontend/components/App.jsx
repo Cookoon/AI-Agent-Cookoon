@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import NavBar from "./NavBar";
+import Calendar from "./Calendar";
 import Identification from "./Identification";
 import { UserProvider, UserContext } from "./UserContext";
 
@@ -11,6 +12,7 @@ function AiAppContent() {
 
   const [prompt, setPrompt] = useState("");
   const [resultText, setResultText] = useState("");
+  const [date, setDate] = useState(null);
   const [loading, setLoading] = useState(false);
   const [rating, setRating] = useState(0);
   const [feedbackSent, setFeedbackSent] = useState(false);
@@ -37,59 +39,69 @@ function AiAppContent() {
       ? [...new Set(arr.map((s) => (s || "").toString().trim()).filter(Boolean))]
       : [];
 
-  const handleSubmit = async () => {
-    if (!prompt) return;
-    setLoading(true);
-    setResultVisible(false); // masquer le résultat avant la requête (prépare l'animation d'entrée)
-    localStorage.setItem("prompt_history", JSON.stringify([prompt]));
+ const handleSubmit = async () => {
+  if (!prompt) return;
 
-    const payload = {
-      prompt,
-      ban_chefs: sanitize(selectedLinesChefs),
-      ban_lieux: sanitize(selectedLinesLieux),
-    };
+  // optionnel mais recommandé : forcer la sélection d'une date
 
-    try {
-      const res = await fetch("/api/ai/recommend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        credentials: "include",
-      });
 
-      const data = await res.json();
-      const text = data.resultText || "Aucun résultat";
-      setResultText(text);
+  setLoading(true);
+  setResultVisible(false);
+  localStorage.setItem("prompt_history", JSON.stringify([prompt]));
 
-      // petit délai pour laisser le DOM monter avec l'état initial (opacity-0) puis déclencher la transition vers visible
-      setTimeout(() => setResultVisible(true), 20);
+  // ✅ FORMATAGE DE LA DATE ICI
+  const formattedDate = date
+    ? date.toISOString().slice(0, 10)
+    : null;
 
-      const chefsMatch = text.match(/CHEFS\s*:(.*?)(?=LIEUX\s*:|$)/s);
-      const lieuxMatch = text.match(/LIEUX\s*:(.*)/s);
-
-      setChefs(
-        chefsMatch
-          ? chefsMatch[1].trim().split(/\n\n+/).map((c) => c.split("\n"))
-          : []
-      );
-      // reset per-item hidden states when new results arrive
-      setHiddenChefButtons([]);
-      setLieux(
-        lieuxMatch
-          ? lieuxMatch[1].trim().split(/\n\n+/).map((l) => l.split("\n"))
-          : []
-      );
-      setHiddenLieuButtons([]);
-    } catch (e) {
-      setResultText("Erreur : " + e.message);
-      setChefs([]);
-      setLieux([]);
-      setTimeout(() => setResultVisible(true), 20);
-    } finally {
-      setLoading(false);
-      setShowTitle(false); // fait disparaître la nav / titre (animation gérée en CSS/Tailwind)
-    }
+  const payload = {
+    prompt, // ton prompt utilisateur
+    schedule_date: formattedDate, // ✅ AJOUT ICI
+    ban_chefs: sanitize(selectedLinesChefs),
+    ban_lieux: sanitize(selectedLinesLieux),
   };
+
+  try {
+    const res = await fetch("/api/ai/recommend", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      credentials: "include",
+    });
+
+    const data = await res.json();
+    const text = data.resultText || "Aucun résultat";
+    setResultText(text);
+
+    setTimeout(() => setResultVisible(true), 20);
+
+    const chefsMatch = text.match(/CHEFS\s*:(.*?)(?=LIEUX\s*:|$)/s);
+    const lieuxMatch = text.match(/LIEUX\s*:(.*)/s);
+
+    setChefs(
+      chefsMatch
+        ? chefsMatch[1].trim().split(/\n\n+/).map((c) => c.split("\n"))
+        : []
+    );
+    setHiddenChefButtons([]);
+
+    setLieux(
+      lieuxMatch
+        ? lieuxMatch[1].trim().split(/\n\n+/).map((l) => l.split("\n"))
+        : []
+    );
+    setHiddenLieuButtons([]);
+  } catch (e) {
+    setResultText("Erreur : " + e.message);
+    setChefs([]);
+    setLieux([]);
+    setTimeout(() => setResultVisible(true), 20);
+  } finally {
+    setLoading(false);
+    setShowTitle(false);
+  }
+};
+
 
   const submitFeedback = async () => {
     if (!rating) {
@@ -543,8 +555,9 @@ const showLieuButton = (line) => setHiddenLieuButtons((prev) => prev.filter((l) 
                 </div>
               </div>
             </div>
-          </div>
 
+          </div>
+             <Calendar selected={date} onChange={setDate} />
         <section class=" bg-gradient-to-b grid place-items-center px-4 mb-6">
           <div class="max-w-4xl rounded-l bg-white p-6 shadow-lg md:p-8 mb-24">
           <ol class="space-y-4 list-decimal list-inside text-gray-800">

@@ -562,6 +562,7 @@ const showLieuButton = (line) => setHiddenLieuButtons((prev) => prev.filter((l) 
         <section class=" bg-gradient-to-b grid place-items-center px-4 mb-6">
           <div class="max-w-4xl rounded-l bg-white p-6 shadow-lg md:p-8 mb-24">
           <ol class="space-y-4 list-decimal list-inside text-gray-800">
+            <p class="font-bold"> ⚠️ Pour avoir accés aux disponibitlités des chefs et lieux il faut être connecté à <a class="text-[#cabb90] underline" href="https://membre.cookoon.club/users/sign_in">membre.cookoon</a></p>
             <p class="pl-1">
               <span class="font-medium">Détaillez votre demande :</span>
             </p>
@@ -586,6 +587,9 @@ const showLieuButton = (line) => setHiddenLieuButtons((prev) => prev.filter((l) 
 
             <li class="pl-1">
               Indiquez le budget par personne en €
+            </li>
+            <li class="pl-1">
+              Selectionnez une date sur le calendrier si besoin de disponibilités précises
             </li>
             <li class="pl-1">
               Exemple de prompt : <span class="italic">Je souhaite un chef non étoilé français proposant une cuisine bistronomique raffinée,

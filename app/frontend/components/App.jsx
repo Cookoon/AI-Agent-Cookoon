@@ -570,7 +570,7 @@ const showLieuButton = (line) => setHiddenLieuButtons((prev) => prev.filter((l) 
             >
               membre.cookoon
             </a>
-</p>
+            </p>
             <p class="pl-1">
               <span class="font-medium">Détaillez votre demande :</span>
             </p>

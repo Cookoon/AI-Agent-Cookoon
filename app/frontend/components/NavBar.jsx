@@ -4,7 +4,7 @@ import { faHouse } from "@fortawesome/free-regular-svg-icons";
 import { faClockRotateLeft } from "@fortawesome/free-solid-svg-icons";
 import { faComments } from "@fortawesome/free-regular-svg-icons";
 import { faRightFromBracket } from "@fortawesome/free-solid-svg-icons";
-import { faPenToSquare  } from "@fortawesome/free-solid-svg-icons"; // nouvel icône
+import { faPenToSquare  } from "@fortawesome/free-regular-svg-icons"; // nouvel icône
 
 export default function NavBar() {
   const handleLogout = async () => {

@@ -1,6 +1,7 @@
 import React from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import "../styles/react-datepicker-overrides.css";
 
 // Professional-looking Calendar input using Tailwind and a custom input element
 const CalendarInput = React.forwardRef(({ value, onClick, placeholder, compact }, ref) => {

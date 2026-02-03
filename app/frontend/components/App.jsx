@@ -562,7 +562,7 @@ const showLieuButton = (line) => setHiddenLieuButtons((prev) => prev.filter((l) 
         <section class=" bg-gradient-to-b grid place-items-center px-4 mb-6">
           <div class="max-w-4xl rounded-l bg-white p-6 shadow-lg md:p-8 mb-24">
           <ol class="space-y-4 list-decimal list-inside text-gray-800">
-            <p class="font-bold"> ⚠️ Pour avoir accés aux disponibilités des chefs et lieux il faut être connecté à <a
+            <p class="font-bold"> ⚠️ Pour avoir accés aux disponibilités des chefs et lieux vous devez être connecté à <a
               class="text-[#cabb90] underline"
               href="https://membre.cookoon.club/users/sign_in"
               target="_blank"

@@ -2,7 +2,7 @@
 import React, { useState, useContext, useEffect } from "react";
 import { UserContext } from "./UserContext";
 
-const ONE_HOUR = 60 * 60 * 1000;
+const ONE_HOUR = 2 * 60 * 60 * 1000;
 
 export default function Identification() {
   const { currentUser, setCurrentUser, checkingAuth } = useContext(UserContext);

@@ -13,10 +13,10 @@ export default function Identification() {
   // On attend la vérification de session
   useEffect(() => {
     const lastAuth = localStorage.getItem("ai_last_auth");
+    // Ne verrouiller que si l'utilisateur n'est PAS authentifié
     if (
-      !currentUser ||
-      !lastAuth ||
-      Date.now() - Number(lastAuth) > ONE_HOUR
+      !currentUser &&
+      (!lastAuth || Date.now() - Number(lastAuth) > ONE_HOUR)
     ) {
       setIsLocked(true);
     } else {
